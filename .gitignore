@@ -1,0 +1,61 @@
+# ==============================================================================
+# .gitignore — Методы машинного обучения (ММО) | БГУИР ФКСиС ПОИТ
+# ==============================================================================
+
+# Виртуальные окружения Python
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+bin/
+lib/
+include/
+
+# Байт-код и кэши Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.agents/
+
+# Jupyter Notebook кэши и контрольные точки
+.ipynb_checkpoints/
+
+# IDE и редакторы кода
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Операционная система и временные файлы
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Вспомогательные временные файлы компиляции LaTeX
+# (Исходники .tex, стилевые файлы и итоговые .pdf сохраняются в репозитории)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+*.nav
+*.snm
+*.vrb
