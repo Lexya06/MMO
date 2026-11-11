@@ -1,0 +1,9 @@
+dataset,max_depth,custom_test_acc,sklearn_test_acc,prediction_match_pct,status
+Synthetic (make_classification),1,0.7733333333333333,0.7733333333333333,100.0,100% Идентичность
+Synthetic (make_classification),2,0.7733333333333333,0.7733333333333333,100.0,100% Идентичность
+Synthetic (make_classification),3,0.7866666666666666,0.7866666666666666,100.0,100% Идентичность
+Synthetic (make_classification),4,0.8,0.8,100.0,100% Идентичность
+Synthetic (make_classification),None,0.72,0.72,97.33333333333334,97.33% совпадение
+Healthy Meal Plan Dataset,1,0.904,0.904,100.0,100% Идентичность
+Healthy Meal Plan Dataset,2,0.904,0.904,100.0,100% Идентичность
+Healthy Meal Plan Dataset,3,0.904,0.904,100.0,100% Идентичность

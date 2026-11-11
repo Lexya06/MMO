@@ -1,23 +1,27 @@
 \documentclass[14pt,a4paper]{extarticle}
 
+% ==============================================================================
+% ЭТАЛОННЫЙ ШАБЛОН ОТЧЕТА ПО СТП 01-2017 ДЛЯ БГУИР (ФКСиС / ПОИТ)
+% ==============================================================================
+
 % --- 1. Поддержка кириллицы, кодировок и шрифтов (СТП 01-2017) ---
 \usepackage{cmap}
 \usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[russian]{babel}
-\usepackage{tempora} % Истинный Times New Roman для кириллицы и латиницы (с полной поддержкой Bold/Italic)
+\usepackage{tempora} % Истинный Times New Roman для кириллицы и латиницы
 
-% --- 2. Геометрия страницы по СТП 01-2017 и образцу ОтчетRest.docx (Левое 30мм, Правое 15мм, Верхнее 20мм, Нижнее 20мм) ---
+% --- 2. Геометрия страницы по СТП 01-2017 (Левое 30мм, Правое 15мм, Верхнее 20мм, Нижнее 20мм) ---
 \usepackage[a4paper, left=30mm, right=15mm, top=20mm, bottom=20mm]{geometry}
 
 % --- 3. Межстрочный интервал (полуторный) и абзацный отступ (1.25 см) ---
 \usepackage{setspace}
-\setstretch{1.25}
+\setstretch{1.25} % 1.25 в LaTeX эквивалентен 1.5 в MS Word из-за baselineskip
 \usepackage{indentfirst}
 \setlength{\parindent}{1.25cm}
 \setlength{\parskip}{0pt}
 
-% --- 4. Предотвращение выезда длинных слов и идентификаторов за границы листа ---
+% --- 4. Предотвращение выезда за границы ---
 \sloppy
 \emergencystretch=2.5em
 \righthyphenmin=2
@@ -32,29 +36,31 @@
 \usepackage{float}
 \usepackage{caption}
 
-% --- 6. Оформление подписей к рисункам и таблицам по СТП 01-2017 (длинное тире) ---
+% --- 6. Оформление подписей к рисункам и таблицам по СТП 01-2017 (длинное тире, без точек) ---
 \DeclareCaptionLabelSeparator{emdash}{~---~}
 \captionsetup[figure]{name=Рисунок, labelsep=emdash, justification=centering, font=normalfont, size=normalsize}
 \captionsetup[table]{name=Таблица, labelsep=emdash, justification=raggedright, singlelinecheck=false, font=normalfont, size=normalsize}
 
-% --- 7. Оформление заголовков разделов и подразделов по СТП 01-2017 (14pt, абзацный отступ 1.25 см) ---
+% --- 7. Оформление заголовков разделов и подразделов по СТП 01-2017 (14pt, без точек) ---
 \usepackage{titlesec}
 \titleformat{\section}[block]{\bfseries\normalsize\raggedright}{\thesection}{1em}{\MakeUppercase}
 \titleformat{\subsection}[block]{\bfseries\normalsize\raggedright}{\thesubsection}{1em}{}
 \titleformat{\subsubsection}[block]{\bfseries\normalsize\raggedright}{\thesubsubsection}{1em}{}
 
+% Каждый раздел первого уровня начинается с новой страницы
+\providecommand{\sectionbreak}{}
+\renewcommand{\sectionbreak}{\clearpage}
+
 \titlespacing*{\section}{\parindent}{18pt}{18pt}
 \titlespacing*{\subsection}{\parindent}{18pt}{18pt}
 \titlespacing*{\subsubsection}{\parindent}{18pt}{18pt}
 
-% --- 8. Листинги кода по СТП 01-2017 (без номеров строк слева, с рамкой и переносом) ---
+% --- 8. Листинги кода по СТП 01-2017 (без номеров строк слева, без рамки, с переносом) ---
 \usepackage{fvextra}
 \usepackage{fancyvrb}
 \DefineVerbatimEnvironment{CodeListing}{Verbatim}{
     fontsize=\fontsize{9.5pt}{11.5pt}\selectfont,
-    frame=single,
-    framesep=2.5mm,
-    framerule=0.5pt,
+    frame=none,
     breaklines=true,
     breaksymbol={\tiny\ensuremath{\hookrightarrow}},
     xleftmargin=0pt,
@@ -98,7 +104,7 @@
 \begin{document}
 
 % ==============================================================================
-% ТИТУЛЬНЫЙ ЛИСТ (образцу СТП 01-2017 и ЛР1, без слова вариант)
+% 1. ТИТУЛЬНЫЙ ЛИСТ
 % ==============================================================================
 \begin{titlepage}
     \begin{center}
@@ -121,7 +127,8 @@
     \begin{center}
         \large\textbf{ОТЧЕТ}\\[0.2cm]
         \normalsize
-        {по лабораторной работе № 3}\\[0.3cm]
+        {по лабораторной работе № 3}\\[0.2cm]
+        Вариант № 2\\[0.3cm]
         Тема работы: Градиентный спуск, стохастический градиентный спуск и регуляризация
     \end{center}
     
@@ -144,97 +151,374 @@
 \setcounter{page}{2}
 
 % ==============================================================================
-\section{Цель работы}
+% 2. ЦЕЛЬ РАБОТЫ
 % ==============================================================================
-Изучение математических основ и практическая программная реализация методов оптимизации функционалов качества в задачах линейной регрессии:
+\section{Цель работы}
+Изучение теоретических основ, математического аппарата и программная реализация в среде Jupyter Notebook методов оптимизации функционалов качества в задачах множественной линейной регрессии:
 \begin{enumerate}
-    \item Реализация алгоритма пакетного градиентного спуска (Batch Gradient Descent) с векторным расчетом градиентов и критерием останова по евклидовой норме изменения весов $\|w^k - w^{k-1}\|_2 < \varepsilon$;
-    \item Экспериментальное исследование влияния шага обучения (Learning Rate $\eta$) на скорость сходимости и устойчивость алгоритма;
-    \item Реализация стохастического градиентного спуска (Stochastic Gradient Descent) со случайным выбором объектов и расписанием затухания темпа обучения Роббинса-Монро;
-    \item Сравнительный анализ скорости сходимости GD и SGD на одном графическом поле;
-    \item Реализация $L_1$-регуляризации (Lasso) для четного варианта 2 через проксимальный оператор Soft-Thresholding (ISTA), а также $L_2$-регуляризации (Ridge) для 20 значений параметра $\lambda$ в диапазоне от $0.001$ до $1000$;
-    \item Сравнение полученных параметров с библиотечными реализациями Scikit-Learn.
+    \item Реализация алгоритма пакетного градиентного спуска (Batch Gradient Descent) с векторным расчетом градиентов и критерием останова по норме изменения весов $\|w^k - w^{k-1}\|_2 < \varepsilon$;
+    \item Экспериментальное исследование влияния темпа обучения (Learning Rate $\eta$) на скорость сходимости и вычислительную устойчивость алгоритма;
+    \item Реализация алгоритма стохастического градиентного спуска (Stochastic Gradient Descent) с расписанием затухания темпа обучения Роббинса---Монро;
+    \item Сравнительный анализ динамики и скорости сходимости GD и SGD на едином графическом поле;
+    \item Программная реализация $L_1$-регуляризации (Lasso) для четного варианта 2 через проксимальный оператор Soft-Thresholding (ISTA), а также $L_2$-регуляризации (Ridge) для 20 значений гиперпараметра $\lambda \in [0.001, 1000]$;
+    \item Эталонное сопоставление полученных параметров и оценок качества с библиотечными моделями Scikit-Learn.
 \end{enumerate}
 
 % ==============================================================================
-\section{Описание набора данных и предварительная обработка}
+% 3. ТЕОРЕТИЧЕСКАЯ ЧАСТЬ
 % ==============================================================================
-В качестве предметной базы использован набор данных из Лабораторной работы №2 (\texttt{StudentPerformanceFactors.csv}, $N = 6607$ наблюдений).
+\section{Теоретическая часть}
 
-Для выполнения условия задания «не менее 2 признаков без учета целевого (не менее 3 весов)» сформирован набор из $m=6$ физически интерпретируемых признаков, что с учетом фиктивного единичного столбца для свободного члена $w_0$ образует вектор из 7 весовых параметров:
-\begin{itemize}
-    \item \texttt{Hours\_Studied} --- количество часов самостоятельных занятий в неделю;
-    \item \texttt{Attendance} --- посещаемость учебных занятий (\%);
-    \item \texttt{Previous\_Scores} --- результаты предварительного тестирования;
-    \item \texttt{Tutoring\_Sessions} --- число индивидуальных занятий с репетитором;
-    \item \texttt{Physical\_Activity} --- часы физической культуры и спорта;
-    \item \texttt{Parental\_Involvement} --- степень вовлеченности родителей в образовательный процесс.
-\end{itemize}
-Целевая переменная: \texttt{Exam\_Score} --- итоговая экзаменационная оценка студента (баллы от 0 до 100).
-
-\textbf{Предотвращение утечки данных (Data Leakage):}  
-Масштабирование признаков алгоритмом \texttt{StandardScaler} ($z = \frac{x - \mu}{\sigma}$) обучено строго на обучающей подвыборке ($80\%$, $N_{train} = 5285$), после чего применилось к тестовой подвыборке ($20\%$, $N_{test} = 1322$). Признак \texttt{Score\_Improvement} исключен, так как он содержит целевую переменную.
-
-% ==============================================================================
-\section{Математические основы алгоритмов оптимизации}
-% ==============================================================================
-
-\subsection{Пакетный градиентный спуск (BGD)}
-Функция потерь среднеквадратичной ошибки (MSE):
+\subsection{Пакетный градиентный спуск}
+В задаче множественной линейной регрессии аналитическое предсказание модели имеет вид:
 \begin{equation}
-    Q(w) = \frac{1}{n} \sum_{i=1}^n (\hat{y}_i - y_i)^2 = \frac{1}{n} \|X_b w - y\|_2^2
+    \hat{y} = X_b w = w_0 + \sum_{j=1}^m w_j x_j
 \end{equation}
-Векторный градиент по весам $w \in \mathbb{R}^{m+1}$:
+где $X_b \in \mathbb{R}^{l \times (m+1)}$~--- матрица признаков с фиктивным единичным столбцом для свободного коэффициента $w_0$; $w \in \mathbb{R}^{m+1}$~--- вектор параметров модели.
+
+Функционал среднеквадратичной ошибки (MSE) на обучающей выборке объема $l$:
 \begin{equation}
-    \nabla Q(w) = \frac{2}{n} X_b^T (X_b w - y)
+    Q(w) = \frac{1}{l} \sum_{i=1}^l (\hat{y}_i - y_i)^2 = \frac{1}{l} \|X_b w - y\|_2^2
 \end{equation}
-Правило обновления весов:
+Векторный градиент функции ошибки MSE по весовым параметрам:
 \begin{equation}
-    w^k = w^{k-1} - \eta \cdot \frac{2}{n} X_b^T (X_b w^{k-1} - y)
+    \nabla Q(w) = \frac{2}{l} X_b^T (X_b w - y)
 \end{equation}
-Критерий останова итерационного процесса:
+Итерационное правило обновления весов пакетного градиентного спуска (BGD):
 \begin{equation}
-    \|w^k - w^{k-1}\|_2 = \sqrt{\sum_{j=0}^m (w_j^k - w_j^{k-1})^2} < \varepsilon = 10^{-6}
+    w^k = w^{k-1} - \eta \cdot \frac{2}{l} X_b^T (X_b w^{k-1} - y)
+\end{equation}
+где $\eta > 0$~--- темп обучения (learning rate). Итерации продолжаются до достижения условия малости нормы приращения весов:
+\begin{equation}
+    \|w^k - w^{k-1}\|_2 = \sqrt{\sum_{j=0}^m (w_j^k - w_j^{k-1})^2} < \varepsilon
 \end{equation}
 
-\subsection{Стохастический градиентный спуск (SGD)}
-На шаге $k$ выбирается случайный индекс объекта $i \in \{0, \dots, n-1\}$. Стохастический градиент:
+\subsection{Стохастический градиентный спуск}
+В отличие от BGD, стохастический градиентный спуск (SGD) на каждом шаге $k$ производит оценку градиента функционала по единственному случайно выбранному объекту с номером $i_k \in \{1, \dots, l\}$:
 \begin{equation}
-    \nabla q_i(w^{k-1}) = 2 (x_i^T w^{k-1} - y_i) x_i
+    \nabla Q_{i_k}(w^{k-1}) = 2 (x_{b, i_k}^T w^{k-1} - y_{i_k}) x_{b, i_k}
 \end{equation}
-Расписание скорости обучения для гарантированной сходимости по условию Роббинса-Монро ($\sum \eta_k = \infty, \sum \eta_k^2 < \infty$):
+Формула обновления параметров модели:
 \begin{equation}
-    \eta_k = \frac{\eta_0}{1 + \alpha \cdot k}, \quad \eta_0 = 0.01, \quad \alpha = 0.0001
+    w^k = w^{k-1} - \eta_k \cdot \nabla Q_{i_k}(w^{k-1})
 \end{equation}
+Для гарантии асимптотической сходимости SGD к глобальному минимуму шаг обучения должен удовлетворять условиям Роббинса---Монро ($\sum \eta_k = \infty, \sum \eta_k^2 < \infty$). Применяется гиперболическое затухание:
+\begin{equation}
+    \eta_k = \frac{\eta_0}{1 + \alpha \cdot k}
+\end{equation}
+где $\eta_0$~--- начальный темп обучения; $\alpha \ge 0$~--- коэффициент затухания.
 
-\subsection{L1-регуляризация (Lasso, Вариант 2)}
-Минимизируемый функционал (смещение $w_0$ не штрафуется):
+\subsection{Регуляризация функционала: L1 (Lasso) и L2 (Ridge)}
+Для подавления переобучения функционал ошибки штрафуется регуляризационным слагаемым (смещение $w_0$ штрафованию не подвергается).
+
+Функционал с $L_1$-регуляризацией (Lasso, Вариант 2):
 \begin{equation}
-    Q_{L1}(w) = \frac{1}{n} \|X_b w - y\|_2^2 + \lambda \sum_{j=1}^m |w_j|
+    Q_{L1}(w) = \frac{1}{l} \|X_b w - y\|_2^2 + \lambda \sum_{j=1}^m |w_j|
 \end{equation}
-Проксимальный шаг Soft-Thresholding (ISTA):
+Поскольку модуль $|w_j|$ недифференцируем в нуле, шаг обновления вычисляется методом ISTA через проксимальный оператор Soft-Thresholding:
 \begin{equation}
     \tilde{w} = w^{k-1} - \eta \nabla Q(w^{k-1})
 \end{equation}
 \begin{equation}
-    w_0^k = \tilde{w}_0, \quad w_j^k = \text{sign}(\tilde{w}_j) \cdot \max(0, |\tilde{w}_j| - \eta \lambda), \quad j = 1, \dots, m
+    w_0^k = \tilde{w}_0, \quad w_j^k = \operatorname{sign}(\tilde{w}_j) \cdot \max(0, |\tilde{w}_j| - \eta \lambda), \quad j = 1, \dots, m
 \end{equation}
 
-\subsection{L2-регуляризация (Ridge)}
+Функционал с $L_2$-регуляризацией (Ridge):
 \begin{equation}
-    Q_{L2}(w) = \frac{1}{n} \|X_b w - y\|_2^2 + \lambda \sum_{j=1}^m w_j^2
+    Q_{L2}(w) = \frac{1}{l} \|X_b w - y\|_2^2 + \lambda \sum_{j=1}^m w_j^2
 \end{equation}
-Безусловно устойчивый оператор сжатия весов (Weight Decay):
+Обновление параметров в $L_2$-регуляризации реализует непрерывный оператор Weight Decay:
 \begin{equation}
     w_0^k = w_0^{k-1} - \eta \nabla Q_0, \quad w_j^k = \frac{w_j^{k-1} - \eta \nabla Q_j}{1 + 2 \eta \lambda}, \quad j = 1, \dots, m
 \end{equation}
 
 % ==============================================================================
-\section{Результаты экспериментов}
+% 4. ФОРМУЛИРОВКА ИНДИВИДУАЛЬНОГО ЗАДАНИЯ
 % ==============================================================================
+\section{Формулировка индивидуального задания}
+В соответствии с учебной программой курса ММО для варианта №~2 (четный вариант) сформулированы следующие требования:
+\begin{enumerate}
+    \item Использовать набор данных успеваемости студентов из Лабораторной работы №2 с числом признаков не менее 2 без учета свободного члена (не менее 3 весов). Обеспечить масштабирование без утечки данных (Data Leakage).
+    \item Реализовать функцию пакетного градиентного спуска (BGD) с критерием останова $\|w^k - w^{k-1}\|_2 < \varepsilon$.
+    \item Провести экспериментальное исследование влияния параметра $\eta$ (learning rate) на число итераций и качество модели.
+    \item Модифицировать алгоритм в стохастический градиентный спуск (SGD), вычисляя вектор антиградиента по одному случайному объекту.
+    \item Обучить линейную модель при помощи градиентного и стохастического спуска. Отобразить на одном графике сходимость обоих алгоритмов по среднеквадратичной ошибке.
+    \item Для четного варианта 2 реализовать $L_1$-регуляризацию (Lasso), а также построить регуляризационные пути для 20 значений $\lambda$ в диапазоне $[10^{-3}, 10^3]$. Провести сопоставление с $L_2$-регуляризацией.
+    \item Сравнить полученные результаты с эталонными моделями библиотеки Scikit-Learn.
+\end{enumerate}
 
-\subsection{Эксперимент 1: Исследование скорости обучения $\eta$}
-В таблице 1 представлены характеристики сходимости BGD при различных $\eta$.
+% ==============================================================================
+% 5. КОД РЕШЕНИЯ ИНДИВИДУАЛЬНОГО ЗАДАНИЯ
+% ==============================================================================
+\section{Код решения индивидуального задания}
+Ниже представлен полный программный код класса \texttt{CustomLinearRegression}, реализующего алгоритмы пакетного, стохастического и регуляризованного градиентного спуска:
+
+\begin{CodeListing}
+"""
+Модуль собственной реализации линейной регрессии с оптимизацией методами:
+- Batch Gradient Descent (BGD / GD)
+- Stochastic Gradient Descent (SGD)
+- L1-регуляризация (Lasso) через субградиентный спуск и Soft-Thresholding (ISTA)
+- L2-регуляризация (Ridge) через градиентный спуск со сжатием весов (Weight Decay)
+"""
+
+from typing import Dict, List, Literal, Optional, Tuple, Union
+import numpy as np
+
+
+class CustomLinearRegression:
+    """
+    Пользовательская модель линейной регрессии, обучаемая методами градиентного спуска.
+
+    Параметры:
+    ----------
+    method : {'gd', 'sgd', 'l1', 'l2'}, default='gd'
+        Метод оптимизации функционала качества:
+        - 'gd': классический (пакетный) градиентный спуск;
+        - 'sgd': стохастический градиентный спуск с выбором одного объекта;
+        - 'l1': градиентный спуск с L1-регуляризацией (Lasso);
+        - 'l2': градиентный спуск с L2-регуляризацией (Ridge).
+    learning_rate : float, default=0.05
+        Базовый шаг градиентного спуска (eta).
+    max_iter : int, default=3000
+        Максимальное число итераций оптимизации.
+    tol : float, default=1e-6
+        Критерий остановки по норме разности весов: ||w^k - w^{k-1}|| < tol.
+    lmbd : float, default=0.0
+        Коэффициент регуляризации (lambda).
+    decay_rate : float, default=0.0
+        Параметр затухания скорости обучения для SGD: eta_k = eta_0 / (1 + decay * k).
+    l1_solver : {'soft_threshold', 'subgradient'}, default='soft_threshold'
+        Способ решения L1: Soft-Thresholding (ISTA, точное зануление) или субградиент.
+    record_loss_every : int, default=1
+        Частота записи значения MSE в историю.
+    random_state : Optional[int], default=42
+        Случайное зерно для воспроизводимости стохастического выбора объектов.
+    """
+
+    def __init__(
+        self,
+        method: Literal["gd", "sgd", "l1", "l2"] = "gd",
+        learning_rate: float = 0.05,
+        max_iter: int = 3000,
+        tol: float = 1e-6,
+        lmbd: float = 0.0,
+        decay_rate: float = 0.0,
+        l1_solver: Literal["soft_threshold", "subgradient"] = "soft_threshold",
+        record_loss_every: int = 1,
+        random_state: Optional[int] = 42,
+    ):
+        self.method = method
+        self.learning_rate = learning_rate
+        self.max_iter = max_iter
+        self.tol = tol
+        self.lmbd = lmbd
+        self.decay_rate = decay_rate
+        self.l1_solver = l1_solver
+        self.record_loss_every = record_loss_every
+        self.random_state = random_state
+
+        # Атрибуты, формируемые после обучения
+        self.weights_: Optional[np.ndarray] = None  # Полный вектор [w0, w1, ..., wm]
+        self.intercept_: Optional[float] = None     # w0
+        self.coef_: Optional[np.ndarray] = None      # [w1, ..., wm]
+        self.loss_history_: List[float] = []        # История MSE
+        self.weights_history_: List[np.ndarray] = []# История весов
+        self.n_iter_: int = 0                       # Реальное число шагов
+        self.converged_: bool = False               # Флаг сходимости по tol
+
+    @staticmethod
+    def _add_bias(X: np.ndarray) -> np.ndarray:
+        """Добавляет фиктивный единичный столбец x0 = 1, если он отсутствует."""
+        if X.ndim == 1:
+            X = X.reshape(-1, 1)
+        if np.allclose(X[:, 0], 1.0):
+            return X
+        ones = np.ones((X.shape[0], 1), dtype=np.float64)
+        return np.hstack([ones, X])
+
+    @staticmethod
+    def _compute_mse(X_b: np.ndarray, y: np.ndarray, w: np.ndarray) -> float:
+        """Вычисляет среднеквадратичную ошибку (MSE) для текущих весов."""
+        errors = X_b.dot(w) - y
+        return float(np.mean(errors ** 2))
+
+    @staticmethod
+    def _soft_threshold(values: np.ndarray, threshold: float) -> np.ndarray:
+        """
+        Проксимальный оператор Soft-Thresholding для L1 регуляризации:
+        S_thresh(v) = sign(v) * max(0, |v| - thresh)
+        """
+        return np.sign(values) * np.maximum(0.0, np.abs(values) - threshold)
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "CustomLinearRegression":
+        """
+        Обучает линейную регрессию на выборке (X, y).
+
+        Parameters:
+        -----------
+        X : np.ndarray размерности (n_samples, n_features) или (n_samples, n_features + 1)
+            Матрица признаков (с единичным столбцом или без него).
+        y : np.ndarray размерности (n_samples,)
+            Вектор истинных значений целевой переменной.
+
+        Returns:
+        --------
+        self : CustomLinearRegression
+        """
+        X_b = self._add_bias(X)
+        n_samples, n_features_with_bias = X_b.shape
+        y = np.asarray(y, dtype=np.float64)
+
+        rng = np.random.RandomState(self.random_state)
+
+        # 1. Инициализация начальных весов w^0 и ε
+        w = np.zeros(n_features_with_bias, dtype=np.float64)
+        self.loss_history_ = []
+        self.weights_history_ = []
+        self.converged_ = False
+
+        # Запись начальной ошибки до первого шага
+        initial_mse = self._compute_mse(X_b, y, w)
+        self.loss_history_.append(initial_mse)
+        self.weights_history_.append(w.copy())
+
+        # 2. Организовать цикл по количеству итераций
+        for k in range(1, self.max_iter + 1):
+            w_prev = w.copy()
+
+            if self.method == "gd":
+                # 3. Расчет новых весов: w^k = w^{k-1} - eta * grad_Q
+                # grad_Q = (2/n) * X^T * (X * w - y)
+                errors = X_b.dot(w_prev) - y
+                grad = (2.0 / n_samples) * X_b.T.dot(errors)
+                w = w_prev - self.learning_rate * grad
+
+            elif self.method == "sgd":
+                # Стохастический градиентный спуск: выбор одного случайного объекта
+                idx = rng.randint(0, n_samples)
+                x_i = X_b[idx]
+                y_i = y[idx]
+                pred_i = np.dot(x_i, w_prev)
+                error_i = pred_i - y_i
+                grad_i = 2.0 * error_i * x_i
+
+                # Расписание скорости обучения Robbins-Monro
+                if self.decay_rate > 0:
+                    eta_k = self.learning_rate / (1.0 + self.decay_rate * k)
+                else:
+                    eta_k = self.learning_rate
+
+                w = w_prev - eta_k * grad_i
+
+            elif self.method == "l1":
+                # L1-регуляризация (Lasso): смещение w0 НЕ регуляризуется!
+                errors = X_b.dot(w_prev) - y
+                grad_mse = (2.0 / n_samples) * X_b.T.dot(errors)
+
+                if self.l1_solver == "soft_threshold":
+                    # Проксимальный градиентный шаг (ISTA)
+                    w_temp = w_prev - self.learning_rate * grad_mse
+                    w = np.zeros_like(w_prev)
+                    w[0] = w_temp[0]  # w0 без штрафа
+                    w[1:] = self._soft_threshold(w_temp[1:], self.learning_rate * self.lmbd)
+                else:
+                    # Субградиентный шаг
+                    subgrad = np.zeros_like(w_prev)
+                    subgrad[0] = grad_mse[0]
+                    subgrad[1:] = grad_mse[1:] + self.lmbd * np.sign(w_prev[1:])
+                    w = w_prev - self.learning_rate * subgrad
+
+            elif self.method == "l2":
+                # L2-регуляризация (Ridge): смещение w0 НЕ регуляризуется!
+                errors = X_b.dot(w_prev) - y
+                grad_mse = (2.0 / n_samples) * X_b.T.dot(errors)
+
+                w = np.zeros_like(w_prev)
+                # w0 обновляется стандартным шагом GD
+                w[0] = w_prev[0] - self.learning_rate * grad_mse[0]
+                # Безусловно устойчивый оператор сжатия для признаков w_1..m:
+                # w^{k} = (w^{k-1} - eta * grad_mse) / (1 + 2 * eta * lambda)
+                w[1:] = (w_prev[1:] - self.learning_rate * grad_mse[1:]) / (
+                    1.0 + 2.0 * self.learning_rate * self.lmbd
+                )
+            else:
+                raise ValueError(f"Неизвестный метод оптимизации: {self.method}")
+
+            # Запись истории ошибки
+            if k % self.record_loss_every == 0 or k == self.max_iter:
+                current_mse = self._compute_mse(X_b, y, w)
+                self.loss_history_.append(current_mse)
+                self.weights_history_.append(w.copy())
+
+            # 4. Завершить цикл, если ||w^k - w^{k-1}|| < tol (или для SGD проверка сходимости)
+            diff_norm = float(np.linalg.norm(w - w_prev))
+            if diff_norm < self.tol:
+                self.converged_ = True
+                self.n_iter_ = k
+                break
+        else:
+            self.n_iter_ = self.max_iter
+
+        self.weights_ = w
+        self.intercept_ = float(w[0])
+        self.coef_ = w[1:].copy()
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """
+        Вычисляет предсказания целевой переменной: y_hat = X_b * w.
+        """
+        if self.weights_ is None:
+            raise RuntimeError("Модель еще не обучена! Вызовите .fit() перед вызовом .predict().")
+        X_b = self._add_bias(X)
+        return X_b.dot(self.weights_)
+
+    def score(self, X: np.ndarray, y: np.ndarray) -> float:
+        """
+        Вычисляет коэффициент детерминации R^2:
+        R^2 = 1 - SS_res / SS_tot
+        """
+        y_pred = self.predict(X)
+        ss_res = np.sum((y - y_pred) ** 2)
+        ss_tot = np.sum((y - np.mean(y)) ** 2)
+        if ss_tot == 0:
+            return 0.0
+        return float(1.0 - (ss_res / ss_tot))
+
+    def mse(self, X: np.ndarray, y: np.ndarray) -> float:
+        """Вычисляет среднеквадратичную ошибку (MSE) на переданной выборке."""
+        y_pred = self.predict(X)
+        return float(np.mean((y - y_pred) ** 2))
+
+    def mae(self, X: np.ndarray, y: np.ndarray) -> float:
+        """Вычисляет среднюю абсолютную ошибку (MAE) на переданной выборке."""
+        y_pred = self.predict(X)
+        return float(np.mean(np.abs(y - y_pred)))
+\end{CodeListing}
+
+% ==============================================================================
+% 6. СКРИНШОТЫ ВЫПОЛНЕНИЯ ИНДИВИДУАЛЬНОГО ЗАДАНИЯ
+% ==============================================================================
+\section{Скриншоты выполнения индивидуального задания}
+
+На рисунке 1 представлена корреляционная матрица отобранных факторов успеваемости студентов. Взаимная корреляция между независимыми признаками не превышает 0.25, что свидетельствует об отсутствии мультиколлинеарности.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.88\textwidth]{images/00_correlation_matrix.png}
+    \caption{Корреляционная матрица признаков датасета успеваемости студентов}
+\end{figure}
+
+На рисунке 2 отображена динамика сходимости MSE при различных значениях шага $\eta \in [0.0005, 0.25]$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{images/01_learning_rate_experiment.png}
+    \caption{Динамика сходимости MSE при различных значениях темпа обучения $\eta$}
+\end{figure}
+
+В таблице 1 представлены итоговые характеристики оптимизации при варьировании шага $\eta$.
 
 \begin{table}[H]
 \centering
@@ -243,67 +527,66 @@
 \toprule
 \textbf{Темп $\eta$} & \textbf{Итераций} & \textbf{Сходимость} & \textbf{Test MSE} & \textbf{Test $R^2$} & \textbf{Время (мс)} \\
 \midrule
-0.0005 & 3000 & Нет (лимит) & 13.4522 & -0.1933 & 146.11 \\
-0.0050 & 1337 & Да & 1.9954 & 0.8230 & 61.29 \\
-0.0200 & 364 & Да & 1.9954 & 0.8230 & 16.57 \\
-0.0500 & 151 & Да & 1.9954 & 0.8230 & 7.16 \\
-0.1000 & 75 & Да & 1.9954 & 0.8230 & 3.52 \\
-0.2500 & \textbf{27} & \textbf{Да} & \textbf{1.9954} & \textbf{0.8230} & \textbf{1.35} \\
+0.0005 & 3000 & Нет (лимит) & 13.4522 & -0.1933 & 813.92 \\
+0.0050 & 1337 & Да & 1.9954 & 0.8230 & 366.48 \\
+0.0200 & 364 & Да & 1.9954 & 0.8230 & 99.90 \\
+0.0500 & 151 & Да & 1.9954 & 0.8230 & 41.44 \\
+0.1000 & 75 & Да & 1.9954 & 0.8230 & 21.81 \\
+0.2500 & \textbf{27} & \textbf{Да} & \textbf{1.9954} & \textbf{0.8230} & \textbf{8.14} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+На рисунке 3 продемонстрирована сходимость алгоритмов BGD и SGD на едином графическом поле.
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{images/01_learning_rate_experiment.png}
-    \caption{Динамика сходимости MSE при различных скоростях обучения $\eta$}
+    \includegraphics[width=0.92\textwidth]{images/02_gd_vs_sgd_convergence.png}
+    \caption{Сравнение сходимости алгоритмов GD и SGD на едином графическом поле}
 \end{figure}
 
-\subsection{Эксперимент 2: Сравнение пакетного (GD) и стохастического (SGD) спуска}
+В таблице 2 приведены сравнительные вычислительные характеристики алгоритмов.
+
 \begin{table}[H]
 \centering
-\caption{Сравнительные показатели BGD и SGD}
+\caption{Сравнительные характеристики пакетного (BGD) и стохастического (SGD) спуска}
 \begin{tabularx}{\textwidth}{lccccc}
 \toprule
 \textbf{Алгоритм} & \textbf{Размер пакета} & \textbf{Шагов} & \textbf{Test MSE} & \textbf{Test $R^2$} & \textbf{Сложность 1 шага} \\
 \midrule
-BGD & $N = 5285$ (вся выборка) & 151 & 1.9954 & 0.8230 & $\mathcal{O}(N \cdot m)$ \\
+BGD & $l = 5285$ (вся выборка) & 151 & 1.9954 & 0.8230 & $\mathcal{O}(l \cdot m)$ \\
 SGD & 1 случайный объект & 10000 & 2.1306 & 0.8110 & $\mathcal{O}(m)$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{images/02_gd_vs_sgd_convergence.png}
-    \caption{Сравнение сходимости GD и SGD на едином графическом поле}
-\end{figure}
-
-\subsection{Эксперимент 3: Регуляризационные пути (L1 для варианта 2 и L2)}
-Исследовано 20 значений $\lambda \in [10^{-3}, 10^3]$. На рисунках 3 и 4 приведены пути изменения весовых параметров.
+На рисунках 4 и 5 представлены регуляризационные пути параметров $w_j$ для 20 значений гиперпараметра $\lambda \in [10^{-3}, 10^3]$ для $L_1$-регуляризации (Lasso) и $L_2$-регуляризации (Ridge).
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{images/03_l1_regularization_path.png}
-    \caption{Регуляризационный путь L1 (Lasso) для четного варианта 2: зануление признаков (Sparsity)}
+    \includegraphics[width=0.90\textwidth]{images/03_l1_regularization_path.png}
+    \caption{Регуляризационный путь L1 (Lasso) для варианта 2: зануление признаков (Sparsity)}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{images/04_l2_regularization_path.png}
-    \caption{Регуляризационный путь L2 (Ridge): непрерывное сжатие весов к нулю (Shrinkage)}
+    \includegraphics[width=0.90\textwidth]{images/04_l2_regularization_path.png}
+    \caption{Регуляризационный путь L2 (Ridge): непрерывное асимптотическое сжатие весов (Shrinkage)}
 \end{figure}
+
+На рисунке 6 представлено покомпонентное сопоставление сжатия параметров для каждого фактора модели.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{images/05_regularization_comparison.png}
-    \caption{Сопоставление отбора признаков (L1) и сжатия коэффициентов (L2)}
+    \caption{Покомпонентное сравнение отбора признаков (L1) и сжатия коэффициентов (L2)}
 \end{figure}
 
-\subsection{Эксперимент 4: Сравнение с библиотекой Scikit-Learn}
+В таблице 3 приведены результаты кросс-валидации собственных алгоритмов против библиотечных эталонов Scikit-Learn.
+
 \begin{table}[H]
 \centering
-\caption{Результаты эталонного тестирования против Scikit-Learn}
+\caption{Результаты эталонного тестирования против библиотеки Scikit-Learn}
 \begin{tabularx}{\textwidth}{lccccc}
 \toprule
 \textbf{Модель} & \textbf{Intercept $w_0$} & \textbf{$\|w\|_2$} & \textbf{Test MSE} & \textbf{Test MAE} & \textbf{Test $R^2$} \\
@@ -323,20 +606,23 @@ Sklearn Ridge ($\alpha=5285.0$) & 67.0982 & 1.5129 & 4.3653 & 1.6541 & 0.6128 \\
 \end{tabularx}
 \end{table}
 
+На рисунке 7 представлен диагностический дашборд валидации модели: рассеяние предсказаний, распределение остатков и сопоставление весовых параметров.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{images/06_model_validation_benchmark.png}
-    \caption{Диаграмма рассеяния «Прогноз vs Факт» и плотность распределения остатков}
+    \caption{Диагностический дашборд валидации модели: рассеяние прогнозов, гистограмма остатков и сопоставление весов}
 \end{figure}
 
 % ==============================================================================
-\section{Выводы}
+% 7. ВЫВОДЫ ПО ЛАБОРАТОРНОЙ РАБОТЕ
 % ==============================================================================
+\section{Выводы}
 \begin{enumerate}
-    \item Реализован полностью векторизованный модуль линейной регрессии на базе градиентных методов оптимизации, демонстрирующий абсолютное совпадение с эталонными библиотеками Scikit-Learn по метрикам ($R^2 = 0.8230$, $MSE = 1.9954$).
-    \item Экспериментально доказано, что выбор темпа обучения $\eta$ критически влияет на скорость оптимизации: на стандартизованных данных при $\eta = 0.25$ алгоритм BGD находит глобальный минимум всего за 27 итераций.
-    \item Сопоставление сходимости выявило преимущества каждого метода: BGD сходится по монотонной траектории за меньшее число итераций ($\mathcal{O}(Nm)$ на шаг), тогда как SGD за счет элементарной сложности шага ($\mathcal{O}(m)$) достигает окрестности решения за долю эпохи (увидев лишь $20\%$ объектов).
-    \item Исследование регуляризационных путей для Варианта 2 наглядно подтвердило эффект разреживания (Sparsity) $L_1$-регуляризации Lasso: при росте $\lambda$ первыми обнуляются статистически наименее значимые признаки (\texttt{Physical\_Activity}), а дольше всех сохраняется наиболее влиятельный признак (\texttt{Attendance}).
+    \item Разработан и верифицирован собственный программный модуль множественной линейной регрессии \texttt{CustomLinearRegression} на чистом векторизованном NumPy. Достигнуто абсолютное численное совпадение найденных весов и метрик качества с библиотечными эталонами Scikit-Learn ($R^2 = 0.8230$, $MSE = 1.9954$).
+    \item Экспериментально доказано, что выбор шага обучения $\eta$ играет ключевую роль: при $\eta = 0.25$ алгоритм BGD сошелся за 27 итераций (8.1 мс), тогда как при $\eta = 0.005$ потребовалось 1337 шагов, а при $\eta = 0.0005$ за 3000 шагов оптимум достигнут не был.
+    \item Сравнение алгоритмов показало, что пакетный градиентный спуск (BGD) сходится строго монотонно благодаря усреднению градиента по всей выборке ($l = 5285$), а стохастический спуск (SGD) на одном объекте требует на порядок меньше операций на шаг ($\mathcal{O}(m)$ против $\mathcal{O}(lm)$), совершая колебания в окрестности оптимума, стабилизируемые расписанием Роббинса---Монро.
+    \item Исследование регуляризационных путей для Варианта 2 наглядно подтвердило фундаментальное теоретическое различие $L_1$ и $L_2$: оператор Soft-Thresholding ($L_1$) обеспечивает зануление весов (Sparsity) и отбор информативных признаков (первым обнуляется \texttt{Physical\_Activity}, последним~--- \texttt{Attendance}), в то время как оператор Weight Decay ($L_2$) непрерывно сжимает все веса к нулю (Shrinkage), сохраняя их ненулевыми.
 \end{enumerate}
 
 \end{document}

@@ -1,0 +1,1 @@
+# Assembler script ready\n

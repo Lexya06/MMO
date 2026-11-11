@@ -14,7 +14,8 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
 if sys.stderr and hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from config import IMAGES_DIR, RESULTS_DIR
+from config import IMAGES_DIR, RESULTS_DIR, TARGET_COLUMN
+from visualizer import plot_correlation_matrix
 from data_loader import load_and_prepare_dataset
 from experiments import (
     run_learning_rate_experiment,
@@ -48,6 +49,8 @@ def main() -> None:
     print(f"  [+] Отобрано признаков: {len(data.feature_names)} (число весов с bias w0 = {data.X_train_b.shape[1]})")
     print(f"  [+] Признаки: {', '.join(data.feature_names)}")
     print(f"  [+] Целевая переменная: Exam_Score")
+    print("\n[ШАГ 1.1] Построение и сохранение корреляционной матрицы...")
+    plot_correlation_matrix(data.df_raw, data.feature_names, TARGET_COLUMN)
 
     # 2. Эксперимент 1: Скорость обучения
     exp1_res = run_learning_rate_experiment(data)

@@ -9,7 +9,7 @@
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -31,6 +31,33 @@ def _save_figure(fig: plt.Figure, filename: str) -> None:
         fig.savefig(output_path, dpi=PLOT_CONFIG["dpi"], bbox_inches="tight")
     plt.close(fig)
     print(f"  [+] Сохранен график: {filename}")
+
+
+def plot_correlation_matrix(
+    df: Any,
+    feature_names: List[str],
+    target_name: str,
+    filename: str = "00_correlation_matrix.png",
+) -> None:
+    """
+    Строит корреляционную матрицу Пирсона для отобранных признаков и целевой переменной.
+    """
+    cols = [f for f in feature_names if f in df.columns] + [target_name]
+    corr_matrix = df[cols].corr()
+
+    fig, ax = plt.subplots(figsize=(9, 7))
+    sns.heatmap(
+        corr_matrix,
+        annot=True,
+        fmt=".3f",
+        cmap="coolwarm",
+        cbar=True,
+        square=True,
+        linewidths=0.5,
+        ax=ax,
+    )
+    ax.set_title("Корреляционная матрица Пирсона отобранных факторов успеваемости", fontsize=12, fontweight="bold", pad=12)
+    _save_figure(fig, filename)
 
 
 def plot_learning_rate_experiment(

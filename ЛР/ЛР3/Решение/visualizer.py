@@ -9,7 +9,7 @@
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -31,6 +31,33 @@ def _save_figure(fig: plt.Figure, filename: str) -> None:
         fig.savefig(output_path, dpi=PLOT_CONFIG["dpi"], bbox_inches="tight")
     plt.close(fig)
     print(f"  [+] Сохранен график: {filename}")
+
+
+def plot_correlation_matrix(
+    df: Any,
+    feature_names: List[str],
+    target_name: str,
+    filename: str = "00_correlation_matrix.png",
+) -> None:
+    """
+    Строит корреляционную матрицу Пирсона для отобранных признаков и целевой переменной.
+    """
+    cols = [f for f in feature_names if f in df.columns] + [target_name]
+    corr_matrix = df[cols].corr()
+
+    fig, ax = plt.subplots(figsize=(9, 7))
+    sns.heatmap(
+        corr_matrix,
+        annot=True,
+        fmt=".3f",
+        cmap="coolwarm",
+        cbar=True,
+        square=True,
+        linewidths=0.5,
+        ax=ax,
+    )
+    ax.set_title("Корреляционная матрица Пирсона отобранных факторов успеваемости", fontsize=12, fontweight="bold", pad=12)
+    _save_figure(fig, filename)
 
 
 def plot_learning_rate_experiment(
@@ -63,16 +90,11 @@ def plot_learning_rate_experiment(
     ax1.grid(True, linestyle="--", alpha=0.6)
 
     # Настройки логарифмического графика
-    import matplotlib.ticker as ticker
-    ax2.set_title("Скорость сходимости MSE (Логарифмическая шкала)", fontsize=13, fontweight="bold")
+    ax2.set_title("Скорость сходимости $\\log(MSE)$ (Semilogy шкала)", fontsize=13, fontweight="bold")
     ax2.set_xlabel("Номер итерации $k$", fontsize=11)
-    ax2.set_ylabel("Среднеквадратичная ошибка (MSE)", fontsize=11)
-    y_ticks_lr = [2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-    ax2.set_yticks(y_ticks_lr)
-    ax2.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
-    ax2.set_ylim(bottom=1.8, top=5500)
+    ax2.set_ylabel("$\\log_{10}(Q(w^k))$", fontsize=11)
     ax2.legend(loc="upper right", frameon=True, framealpha=0.9)
-    ax2.grid(True, which="both", linestyle="--", alpha=0.5)
+    ax2.grid(True, linestyle="--", alpha=0.6)
 
     _save_figure(fig, filename)
 
@@ -85,78 +107,57 @@ def plot_gd_vs_sgd_convergence(
     filename: str = "02_gd_vs_sgd_convergence.png",
 ) -> None:
     """
-    Строит понятный сравнительный график сходимости BGD и SGD на одном координатном поле:
-    Панель 1: Общий спуск ошибки от старта (4500) до минимума (~2) с понятными числовыми метками;
-    Панель 2: Увеличенный масштаб вблизи минимума (линейная шкала от 150 до 400 шагов),
-              демонстрирующий гладкую линию BGD и колебания стохастического шума SGD.
+    Строит сравнительный график среднеквадратичной ошибки для GD и SGD
+    на одном координатном поле в соответствии с заданием кафедры.
     """
-    import matplotlib.ticker as ticker
-
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
 
-    # Продлеваем значения BGD после сходимости последним значением, чтобы линия была непрерывной
-    gd_full = list(gd_losses)
-    while len(gd_full) <= max_iter_plot:
-        gd_full.append(gd_full[-1])
+    k_gd = np.arange(len(gd_losses[:max_iter_plot]))
+    loss_gd = np.array(gd_losses[:max_iter_plot])
 
-    sgd_full = sgd_losses[: max_iter_plot + 1]
+    k_sgd = np.arange(len(sgd_losses[:max_iter_plot]))
+    loss_sgd = np.array(sgd_losses[:max_iter_plot])
 
-    # Панель 1: Полная траектория сходимости
+    # Панель 1: Сравнение по числу итераций (градиентных шагов)
+    ax1.plot(k_gd, loss_gd, label="BGD (Пакетный градиентный спуск, $N=5285$)", color="#1f77b4", linewidth=2.5)
     ax1.plot(
-        range(len(gd_full[: max_iter_plot + 1])),
-        gd_full[: max_iter_plot + 1],
-        label="BGD (Пакетный спуск: все 5285 студентов)",
-        color="#1f77b4",
-        linewidth=2.5,
-    )
-    ax1.plot(
-        range(len(sgd_full)),
-        sgd_full,
-        label="SGD (Стохастический спуск: 1 случайный студент)",
+        k_sgd,
+        loss_sgd,
+        label="SGD (Стохастический спуск, 1 объект)",
         color="#ff7f0e",
         linewidth=1.8,
         alpha=0.85,
     )
 
-    ax1.set_title("Сравнение сходимости BGD и SGD (Полный спуск)", fontsize=13, fontweight="bold")
-    ax1.set_xlabel("Номер итерации $k$ (число сделанных шагов)", fontsize=11)
+    ax1.set_title("Сравнение сходимости: GD vs SGD (по числу итераций)", fontsize=13, fontweight="bold")
+    ax1.set_xlabel("Итерация $k$ (число градиентных шагов)", fontsize=11)
     ax1.set_ylabel("Среднеквадратичная ошибка (MSE)", fontsize=11)
     ax1.set_yscale("log")
-
-    # Четкие понятные числа на шкале Y вместо степеней 10
-    y_ticks = [2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-    ax1.set_yticks(y_ticks)
-    ax1.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
-    ax1.set_ylim(bottom=1.8, top=5500)
-    ax1.set_xlim(-5, max_iter_plot)
     ax1.legend(loc="upper right", frameon=True, framealpha=0.9)
-    ax1.grid(True, which="both", linestyle="--", alpha=0.5)
+    ax1.grid(True, which="both", linestyle="--", alpha=0.6)
 
-    # Панель 2: Увеличенный масштаб вблизи минимума (шаги от 150 до 400)
-    zoom_start = 150
+    # Панель 2: Сравнение по эффективным эпохам (проходам по данным)
+    # Для GD 1 шаг = 1 эпоха (N вычислений градиента). Для SGD N шагов = 1 эпоха.
+    epochs_gd = np.arange(len(gd_losses))
+    epochs_sgd = np.arange(len(sgd_losses)) / float(n_samples)
+
+    ax2.plot(epochs_gd[:50], gd_losses[:50], label="BGD (1 шаг = 1 эпоха)", color="#1f77b4", linewidth=2.5)
     ax2.plot(
-        range(zoom_start, max_iter_plot + 1),
-        gd_full[zoom_start : max_iter_plot + 1],
-        label="BGD (сошелся к оптимуму MSE = 2.24)",
-        color="#1f77b4",
-        linewidth=2.5,
-    )
-    ax2.plot(
-        range(zoom_start, min(len(sgd_full), max_iter_plot + 1)),
-        sgd_full[zoom_start : max_iter_plot + 1],
-        label="SGD (колебания вокруг оптимума)",
-        color="#ff7f0e",
-        linewidth=1.6,
+        epochs_sgd,
+        sgd_losses,
+        label="SGD ($N$ шагов = 1 эпоха)",
+        color="#2ca02c",
+        linewidth=1.8,
         alpha=0.85,
     )
 
-    ax2.set_title("Увеличенный масштаб вблизи минимума (Линейная шкала)", fontsize=13, fontweight="bold")
-    ax2.set_xlabel("Номер итерации $k$ (шаги от 150 до 400)", fontsize=11)
+    ax2.set_title("Сходимость в зависимости от числа эпох (проходов по датасету)", fontsize=13, fontweight="bold")
+    ax2.set_xlabel("Эффективные эпохи (число проходов $N$ объектов)", fontsize=11)
     ax2.set_ylabel("Среднеквадратичная ошибка (MSE)", fontsize=11)
-    ax2.set_ylim(1.8, 6.0)
-    ax2.set_xlim(zoom_start, max_iter_plot)
+    ax2.set_yscale("log")
+    ax2.set_xlim(-0.05, 5.0)
     ax2.legend(loc="upper right", frameon=True, framealpha=0.9)
-    ax2.grid(True, linestyle="--", alpha=0.6)
+    ax2.grid(True, which="both", linestyle="--", alpha=0.6)
 
     _save_figure(fig, filename)
 
