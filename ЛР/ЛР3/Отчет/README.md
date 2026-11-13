@@ -76,13 +76,13 @@ $$\text{Балл} = w_0 + (w_1 \cdot \text{Часы}) + (w_2 \cdot \text{Пос�
 
 | № в задании | Требование кафедры | Что сделано простыми словами | Где находится код | Графический артефакт | Статус |
 |:---|:---|:---|:---|:---|:---:|
-| **Пункт 1** | Использовать датасет из ЛР для EDA. Признаков $\ge 2$ без учета целевого ($\ge 3$ весов). Масштабирование данных. | Взяли 6 числовых колонок из ЛР2 ($m=6 \ge 2$, с bias $w_0$ получается 7 весов $\ge 3$). Исключили колонку с утечкой (`Score_Improvement`). Отмасштабировали признаки через `StandardScaler` строго на Train. | [`load_and_prepare_dataset()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/data_loader.py#L42-L118) в [data_loader.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/data_loader.py) | Лог размерностей выборок в консоли | **100%** |
-| **Пункт 2** | Самостоятельная функция пакетного градиентного спуска (BGD): инициализация $w^0, \varepsilon$; цикл итераций; расчет $w^k = w^{k-1} - \eta \nabla Q$; останов при $\|w^k - w^{k-1}\| < \varepsilon$. | Написали класс `CustomLinearRegression(method='gd')`. Инициализировали веса нулями, считаем векторный градиент $\frac{2}{n} X_b^T (X_b w - y)$, сдвигаем веса и останавливаемся при длине шага сдвига $< 10^{-6}$. | [`CustomLinearRegression.fit()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py#L90-L198) в [linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py) | Таблица сходимости в консоли | **100%** |
-| **Пункт 3** | Эксперимент со скоростью обучения ($\eta$). Сделать выводы. | Проверили 6 скоростей $\eta$ от $0.0005$ до $0.25$. Построили графики с понятными числами на шкале ошибок. Доказали, что при хорошем шаге $\eta=0.25$ модель находит минимум всего за **27 шагов**. | [`run_learning_rate_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L32-L78) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [01_learning_rate_experiment.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/01_learning_rate_experiment.png) | **100%** |
-| **Пункт 4** | Добавить в функцию выбор случайного объекта на каждой итерации (SGD). | Реализовали стохастический спуск: на каждом шаге случайно берем одного студента, считаем градиент только по нему и делаем шаг с затухающей скоростью $\eta_k = \frac{\eta_0}{1 + \alpha k}$. | [`CustomLinearRegression.fit(method='sgd')`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py#L129-L146) в [linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py) | Лог стохастического обучения | **100%** |
-| **Пункт 5** | Обучить линейную модель при помощи GD и SGD. Нанести MSE обоих методов на один график, сделать выводы. | Построили график с двумя панелями: слева — полный спуск обоих методов от 4500 до 2.24 по логарифмической шкале с обычными числами; справа — увеличенный масштаб дна (линейная шкала), где наглядно видна гладкость BGD и колебания SGD. | [`run_gd_vs_sgd_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L81-L150) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [02_gd_vs_sgd_convergence.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/02_gd_vs_sgd_convergence.png) | **100%** |
-| **Пункт 6** | Для четных вариантов реализовать L1 регуляризацию, для нечетных — L2. Взять 20 коэффициентов $\lambda \in [0.001, 1000]$ и показать на графике изменение весов. | **Вариант 2 — четный: реализовали L1 (Lasso)** через мягкий порог (Soft-Thresholding). **Дополнительно сделали L2 (Ridge)** через Weight Decay. Для 20 значений $\lambda$ построили графики: L1 строго зануляет признаки в ноль (отбор), а L2 лишь плавно сжимает их. | [`run_regularization_path_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L153-L245) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [03_l1_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/03_l1_regularization_path.png), [04_l2_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/04_l2_regularization_path.png), [05_regularization_comparison.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/05_regularization_comparison.png) | **100%** |
-| **Бонус** | Сравнение с библиотекой Scikit-Learn. | Проверили наши модели против `LinearRegression`, `SGDRegressor`, `Lasso`, `Ridge`. Веса и ошибки совпали с библиотечными с точностью до 4 знаков после запятой! | [`run_benchmark_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L248-L336) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [06_model_validation_benchmark.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/06_model_validation_benchmark.png) | **100%** |
+| **Пункт 1** | Использовать датасет из ЛР для EDA. Признаков $\ge 2$ без учета целевого ($\ge 3$ весов). Масштабирование данных. | Взяли 6 числовых колонок из ЛР2 ($m=6 \ge 2$, с bias $w_0$ получается 7 весов $\ge 3$). Исключили колонку с утечкой (`Score_Improvement`). Отмасштабировали признаки через `StandardScaler` строго на Train. | [`prepare_data()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/data_loader.py) в [data_loader.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/data_loader.py) | Лог размерностей выборок в консоли | **100%** |
+| **Пункт 2** | Самостоятельная функция пакетного градиентного спуска (BGD): инициализация $w^0, \varepsilon$; цикл итераций; расчет $w^k = w^{k-1} - \eta \nabla Q$; останов при $\|w^k - w^{k-1}\| < \varepsilon$. | Написали класс `CustomLinearRegression(method='gd')`. Инициализировали веса нулями, считаем векторный градиент $\frac{2}{n} X_b^T (X_b w - y)$, сдвигаем веса и останавливаемся при длине шага сдвига $< 10^{-6}$. | [`CustomLinearRegression.fit()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/linear_regression.py) в [linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/linear_regression.py) | Таблица сходимости в консоли | **100%** |
+| **Пункт 3** | Эксперимент со скоростью обучения ($\eta$). Сделать выводы. | Проверили 6 скоростей $\eta$ от $0.0005$ до $0.25$. Построили графики с понятными числами на шкале ошибок. Доказали, что при хорошем шаге $\eta=0.25$ модель находит минимум всего за **27 шагов**. | [`run_learning_rate_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) | [01_learning_rate_experiment.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/01_learning_rate_experiment.png) | **100%** |
+| **Пункт 4** | Добавить в функцию выбор случайного объекта на каждой итерации (SGD). | Реализовали стохастический спуск: на каждом шаге случайно берем одного студента, считаем градиент только по нему и делаем шаг с затухающей скоростью $\eta_k = \frac{\eta_0}{1 + \alpha k}$. | [`CustomLinearRegression.fit(method='sgd')`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/linear_regression.py) в [linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/linear_regression.py) | Лог стохастического обучения | **100%** |
+| **Пункт 5** | Обучить линейную модель при помощи GD и SGD. Нанести MSE обоих методов на один график, сделать выводы. | Построили график с двумя панелями: слева — полный спуск обоих методов от 4500 до 2.24 по логарифмической шкале с обычными числами; справа — увеличенный масштаб дна (линейная шкала), где наглядно видна гладкость BGD и колебания SGD. | [`run_gd_vs_sgd_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) | [02_gd_vs_sgd_convergence.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/02_gd_vs_sgd_convergence.png) | **100%** |
+| **Пункт 6** | Для четных вариантов реализовать L1 регуляризацию, для нечетных — L2. Взять 20 коэффициентов $\lambda \in [0.001, 1000]$ и показать на графике изменение весов. | **Вариант 2 — четный: реализовали L1 (Lasso)** через мягкий порог (Soft-Thresholding). **Дополнительно сделали L2 (Ridge)** через Weight Decay. Для 20 значений $\lambda$ построили графики: L1 строго зануляет признаки в ноль (отбор), а L2 лишь плавно сжимает их. | [`run_regularization_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) | [03_l1_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/03_l1_regularization_path.png), [04_l2_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/04_l2_regularization_path.png), [05_regularization_comparison.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/05_regularization_comparison.png) | **100%** |
+| **Бонус** | Сравнение с библиотекой Scikit-Learn. | Проверили наши модели против `LinearRegression`, `SGDRegressor`, `Lasso`, `Ridge`. Веса и ошибки совпали с библиотечными с точностью до 4 знаков после запятой! | [`run_benchmark_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/experiments.py) | [06_model_validation_benchmark.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/06_model_validation_benchmark.png) | **100%** |
 
 ---
 
@@ -91,27 +91,25 @@ $$\text{Балл} = w_0 + (w_1 \cdot \text{Часы}) + (w_2 \cdot \text{Пос�
 ### 2.1. Структура файлов проекта
 ```text
 C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\
-├── lab03_gradient_descent.ipynb          # ⭐ Интерактивный Jupyter Notebook со всеми графиками и выводами
-├── README.md                             # Документация проекта, шпаргалка к защите и разбор кода
 ├── Задание/
 │   └── ЛР 03 Градиентный спуск.docx       # Исходный документ с требованиями кафедры ПОИТ
-├── Решение/
-│   ├── lab03_gradient_descent.ipynb      # Копия рабочего ноутбука в каталоге Решение
-│   ├── build_notebook.py                 # Программный сборщик и валидатор ноутбука (nbclient)
-│   ├── config.py                         # Конфигурация: признаки, сетка lambda, seed=42
-│   ├── data_loader.py                    # Загрузка датасета ЛР2, разбиение Train/Test, скейлер
-│   ├── linear_regression.py              # Класс CustomLinearRegression: BGD, SGD, L1, L2, МНК
-│   ├── experiments.py                    # Запуск 4 вычислительных экспериментов, расчет таблиц
-│   ├── visualizer.py                     # Отрисовка всех графиков в качестве 300 DPI
-│   ├── main.py                           # Главный консольный запускающий модуль
-│   ├── solution.py                       # Точка быстрого старта (python solution.py)
+├── Решение/                              # ⭐ Единственный актуальный комплект решения
+│   ├── lab03_gradient_descent.ipynb      # Рабочий Jupyter Notebook со всеми графиками и выводами
+│   ├── README.md                         # Документация проекта, шпаргалка к защите и разбор кода
+│   ├── student_performance_featured.csv  # Подготовленный датасет из ЛР2
 │   ├── images/                           # Графические артефакты высокого разрешения (Рис. 0–6)
 │   └── results/                          # Сгенерированные CSV-файлы с расчетами
 └── Отчет/
     ├── README.md                         # Документация и шпаргалка для защиты
     ├── report.tex                        # Академический отчет в LaTeX по стандарту СТП 01-2017
     ├── images/                           # Актуальные графики (300 DPI) для компиляции отчета
-    ├── code/                             # Исходный код модулей
+    ├── code/                             # Исходный код (синхронизирован с ноутбуком)
+    │   ├── config.py                     # Импорты, настройки среды, пути, save_plot()
+    │   ├── data_loader.py                # prepare_data(): датасет, Train/Test, StandardScaler
+    │   ├── linear_regression.py          # Класс CustomLinearRegression: BGD, SGD, L1, L2, МНК
+    │   ├── experiments.py                # 4 эксперимента + построение графиков
+    │   ├── main.py                       # Главный консольный запускающий модуль
+    │   └── solution.py                   # Точка быстрого старта (python solution.py)
     └── Отчет_Overleaf/                   # Комплект для Overleaf:
         ├── report.tex                    # Исходник отчета
         ├── images/                       # Папка с иллюстрациями
@@ -126,17 +124,19 @@ C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\
   cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
   .\.venv\Scripts\python.exe -m jupyter notebook lab03_gradient_descent.ipynb
   ```
-- **Автоматический перезапуск и валидация всех ячеек «с нуля»:**
+- **Полный перезапуск всех расчётов «с нуля» (консольный пайплайн):**
   ```powershell
-  cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
-  .\.venv\Scripts\python.exe build_notebook.py
+  cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Отчет\code"
+  ..\..\Решение\.venv\Scripts\python.exe solution.py
   ```
 
 ### 2.3. Запуск консольного пайплайна
-Для пакетного выполнения всех расчетов и обновления файлов графиков и CSV:
+Для пакетного выполнения всех расчетов и обновления файлов графиков и CSV
+(скрипты лежат в `Отчет/code`, а результаты пишутся в `Решение/images`,
+`Решение/results` и `Отчет/images` — так же, как это делает ноутбук):
 ```powershell
-cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
-.\.venv\Scripts\python.exe solution.py
+cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Отчет\code"
+..\..\Решение\.venv\Scripts\python.exe solution.py
 ```
 
 ---
@@ -182,7 +182,7 @@ cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
 Во 2-й лабораторной мы создавали колонку $\text{Score\_Improvement} = \text{Exam\_Score} - \text{Previous\_Scores}$.  
 Если оставить эту колонку в таблице, модель мгновенно поймет: $\text{Exam\_Score} = \text{Score\_Improvement} + \text{Previous\_Scores}$. Она покажет фальшивую 100% точность. Но в реальной жизни студент приходит на экзамен, его оценка еще **неизвестна**, и посчитать `Score_Improvement` невозможно! Мы обязательно исключили эту колонку.
 
-#### 💻 Код реализации ([data_loader.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/data_loader.py)):
+#### 💻 Код реализации ([data_loader.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/data_loader.py)):
 ```python
 # data_loader.py (строки 74-106)
 X_train_raw, X_test_raw, y_train, y_test = train_test_split(
@@ -245,7 +245,7 @@ X_test_b = np.hstack([ones_test, X_test_scaled])
 - **Критерий остановки:**
   Считаем евклидово расстояние смещения весов: $\sqrt{\sum (w_j^{новый} - w_j^{старый})^2} < \varepsilon$.
 
-#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py)):
+#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/linear_regression.py)):
 ```python
 # linear_regression.py (строки 114-127, 185-194)
 # 1. Начальные веса - нули
@@ -331,7 +331,7 @@ $$\eta \in [0.0005, 0.005, 0.02, 0.05, 0.1, 0.25]$$
 $$\eta_k = \frac{\eta_0}{1 + 0.0001 \cdot k}$$
 В начале, пока модель ничего не знает, шаги большие и смелые. Ближе к концу шаги становятся микроскопическими, и модель аккуратно замирает в точке наименьшей ошибки.
 
-#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py)):
+#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/linear_regression.py)):
 ```python
 # linear_regression.py (строки 129-146)
 elif self.method == "sgd":
@@ -396,7 +396,7 @@ elif self.method == "sgd":
 К каждому весу признака применяется правило: если сила признака слабее величины штрафа $\eta \lambda$, то вес **принудительно обнуляется в 0**:
 $$w_j = \text{sign}(w_j) \cdot \max(0, |w_j| - \eta \lambda)$$
 
-#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py)):
+#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Отчет/code/linear_regression.py)):
 ```python
 # linear_regression.py (строки 148-164)
 elif self.method == "l1":

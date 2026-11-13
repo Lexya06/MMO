@@ -1,132 +1,78 @@
 """
 Модуль загрузки, валидации и предобработки данных для Лабораторной работы №3.
-Осуществляет извлечение данных из ЛР2, разбиение выборки, стандартизацию
-(без Data Leakage) и добавление фиктивного единичного столбца для свободного члена (bias).
+Полностью повторяет ячейку «ЗАГРУЗКА, ПРЕДОБРАБОТКА И СТАНДАРТИЗАЦИЯ ДАННЫХ»
+блокнота lab03_gradient_descent.ipynb.
 """
 
-from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import List, Tuple
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from config import (
-    LR2_DATA_PATH,
-    LR2_CLEANED_DATA_PATH,
-    SELECTED_FEATURES,
-    TARGET_COLUMN,
-    LEAKAGE_COLUMNS,
-    RANDOM_SEED,
-)
+from config import DATA_PATH, RANDOM_SEED
 
 
-@dataclass
-class DatasetContainer:
-    """Контейнер для хранения подготовленных матриц и метаданных датасета."""
-
-    X_train_raw: np.ndarray
-    X_test_raw: np.ndarray
-    X_train_scaled: np.ndarray
-    X_test_scaled: np.ndarray
-    X_train_b: np.ndarray  # С единичным столбцом (x0 = 1) для w0
-    X_test_b: np.ndarray  # С единичным столбцом (x0 = 1) для w0
-    y_train: np.ndarray
-    y_test: np.ndarray
-    feature_names: List[str]
-    scaler: StandardScaler
-    df_raw: pd.DataFrame
-
-
-def load_and_prepare_dataset(
-    feature_mode: str = "selected",
-    test_size: float = 0.2,
-    random_state: int = RANDOM_SEED,
-) -> DatasetContainer:
+def prepare_data() -> Tuple[
+    pd.DataFrame, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+    np.ndarray, np.ndarray, List[str], str,
+]:
     """
-    Загружает датасет из ЛР2, фильтрует признаки и подготавливает матрицы.
-
-    Parameters:
-    -----------
-    feature_mode : str
-        'selected' для 6 ключевых интерпретируемых признаков,
-        'all' для всех признаков кроме утечек и таргета.
-    test_size : float
-        Доля тестовой выборки (по умолчанию 0.2).
-    random_state : int
-        Случайное зерно для воспроизводимости разбиения.
-
-    Returns:
-    --------
-    DatasetContainer
-        Структурированный объект со всеми выборками и скейлером.
+    Загружает датасет из ЛР2, верифицирует отсутствие пропусков и выбросов,
+    исключает признаки с утечкой целевой переменной, разбивает на Train/Test (80/20)
+    и выполняет корректную стандартизацию признаков через StandardScaler.
     """
-    if LR2_DATA_PATH.exists():
-        df = pd.read_csv(LR2_DATA_PATH)
-    elif LR2_CLEANED_DATA_PATH.exists():
-        df = pd.read_csv(LR2_CLEANED_DATA_PATH)
-    else:
-        raise FileNotFoundError(
-            f"Не найден датасет из ЛР2 по путям:\n{LR2_DATA_PATH}\n{LR2_CLEANED_DATA_PATH}"
-        )
+    candidates = [
+        DATA_PATH,
+        Path.cwd() / "student_performance_featured.csv",
+        Path.cwd().parent / "student_performance_featured.csv",
+        Path("student_performance_featured.csv"),
+        Path.cwd().parent.parent / "ЛР2" / "Решение" / "processed_data" / "student_performance_featured.csv",
+    ]
 
-    # Исключение признаков с утечкой целевой переменной
-    for col in LEAKAGE_COLUMNS:
-        if col in df.columns:
-            df = df.drop(columns=[col])
+    dataset_path = None
+    for p in candidates:
+        if p.exists():
+            dataset_path = p
+            break
 
-    # Выбор признаков
-    if feature_mode == "selected":
-        feature_names = [f for f in SELECTED_FEATURES if f in df.columns]
-    elif feature_mode == "all":
-        feature_names = [c for c in df.columns if c != TARGET_COLUMN]
-    else:
-        raise ValueError(f"Неизвестный режим признаков: {feature_mode}")
+    if dataset_path is None:
+        raise FileNotFoundError(f"Файл датасета не найден. Проверены пути: {[str(c) for c in candidates]}")
 
-    if len(feature_names) < 2:
-        raise ValueError(
-            f"По заданию признаков должно быть не менее 2. Найдено: {len(feature_names)}"
-        )
+    df = pd.read_csv(dataset_path)
 
-    X = df[feature_names].values.astype(np.float64)
-    y = df[TARGET_COLUMN].values.astype(np.float64)
+    # 1. Проверка чистоты данных: аудит пропусков (Missing Values)
+    null_counts = df.isna().sum().sum()
+    assert null_counts == 0, f"Обнаружены пропущенные значения: {null_counts}"
 
-    # Разделение на обучающую и тестовую выборки ДО масштабирования
-    X_train_raw, X_test_raw, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state
+    selected_features = [
+        "Hours_Studied",
+        "Attendance",
+        "Previous_Scores",
+        "Tutoring_Sessions",
+        "Physical_Activity",
+        "Parental_Involvement"
+    ]
+    target_col = "Exam_Score"
+
+    # 2. Извлечение матриц признаков и целевого вектора
+    X_raw = df[selected_features].values.astype(np.float64)
+    y_raw = df[target_col].values.astype(np.float64)
+
+    # 3. Разделение на обучающую (80%) и тестовую (20%) выборки ДО масштабирования
+    X_tr_raw, X_te_raw, y_train, y_test = train_test_split(
+        X_raw, y_raw, test_size=0.20, random_state=RANDOM_SEED, shuffle=True
     )
 
-    # Обучение скейлера строго на Train, предотвращая Data Leakage
+    # 4. Стандартизация признаков: fit выполняется СТРОГО на обучающей выборке
     scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train_raw)
-    X_test_scaled = scaler.transform(X_test_raw)
+    X_train_scaled = scaler.fit_transform(X_tr_raw)
+    X_test_scaled = scaler.transform(X_te_raw)
 
-    # Добавление единичного столбца для смещения (bias) w0: X_b = [1, X]
-    ones_train = np.ones((X_train_scaled.shape[0], 1), dtype=np.float64)
-    ones_test = np.ones((X_test_scaled.shape[0], 1), dtype=np.float64)
+    # 5. Добавление фиктивного единичного столбца x0 = 1 для свободного члена w0
+    X_train_b = np.hstack([np.ones((X_train_scaled.shape[0], 1)), X_train_scaled])
+    X_test_b = np.hstack([np.ones((X_test_scaled.shape[0], 1)), X_test_scaled])
 
-    X_train_b = np.hstack([ones_train, X_train_scaled])
-    X_test_b = np.hstack([ones_test, X_test_scaled])
-
-    return DatasetContainer(
-        X_train_raw=X_train_raw,
-        X_test_raw=X_test_raw,
-        X_train_scaled=X_train_scaled,
-        X_test_scaled=X_test_scaled,
-        X_train_b=X_train_b,
-        X_test_b=X_test_b,
-        y_train=y_train,
-        y_test=y_test,
-        feature_names=feature_names,
-        scaler=scaler,
-        df_raw=df,
-    )
-
-
-if __name__ == "__main__":
-    data = load_and_prepare_dataset(feature_mode="selected")
-    print(f"Загружено признаков: {len(data.feature_names)}")
-    print(f"Признаки: {data.feature_names}")
-    print(f"Размерность X_train_b: {data.X_train_b.shape}")
-    print(f"Размерность X_test_b:  {data.X_test_b.shape}")
-    print(f"Среднее y_train: {data.y_train.mean():.2f}, std: {data.y_train.std():.2f}")
+    return df, X_train_b, X_test_b, y_train, y_test, X_train_scaled, X_test_scaled, selected_features, target_col

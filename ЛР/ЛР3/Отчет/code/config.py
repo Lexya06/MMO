@@ -1,74 +1,79 @@
 """
-Централизованный конфигурационный модуль для Лабораторной работы №3.
+Централизованный конфигурационный модуль Лабораторной работы №3.
 «Градиентный спуск, стохастический градиентный спуск и регуляризация».
+
+Содержимое полностью повторяет первую (служебную) ячейку блокнота
+lab03_gradient_descent.ipynb: импорты, настройку вычислительной среды,
+каталоги для артефактов и функцию сохранения графиков.
 """
 
-import os
+import sys
+import time
+import warnings
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple
+
+# Высокопроизводительные библиотеки векторных вычислений и таблиц
 import numpy as np
+import pandas as pd
 
-# Базовые директории
-BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parent
-LR2_DATA_PATH = (
-    PROJECT_ROOT.parent / "ЛР2" / "Решение" / "processed_data" / "student_performance_featured.csv"
-)
-LR2_CLEANED_DATA_PATH = (
-    PROJECT_ROOT.parent / "ЛР2" / "Решение" / "processed_data" / "student_performance_cleaned.csv"
-)
+# Академическая визуализация публикационного качества (300 DPI)
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import seaborn as sns
+from scipy import stats
 
-# Каталоги сохранения результатов и графиков
-IMAGES_DIR = BASE_DIR / "images"
-REPORT_IMAGES_DIR = PROJECT_ROOT / "Отчет" / "images"
-RESULTS_DIR = BASE_DIR / "results"
+# Эталонные алгоритмы машинного обучения Scikit-Learn для валидации
+from sklearn.linear_model import Lasso, LinearRegression, Ridge, SGDRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
-for d in [IMAGES_DIR, REPORT_IMAGES_DIR, RESULTS_DIR]:
-    d.mkdir(parents=True, exist_ok=True)
+# Интерактивный вывод в Jupyter Notebook
+from IPython.display import HTML, display
 
-# Ключевые признаки (интерпретируемый набор: 6 признаков + свободный член w0 = 7 весов >= 3)
-SELECTED_FEATURES = [
-    "Hours_Studied",
-    "Attendance",
-    "Previous_Scores",
-    "Tutoring_Sessions",
-    "Physical_Activity",
-    "Parental_Involvement",
-]
+# Headless-режим: консольный запуск без интерактивных окон
+plt.switch_backend("Agg")
 
-# Целевая переменная
-TARGET_COLUMN = "Exam_Score"
-
-# Запрещенные признаки (утечка данных)
-LEAKAGE_COLUMNS = ["Score_Improvement"]
-
-# Гиперпараметры градиентного спуска (BGD)
-GD_PARAMS = {
-    "learning_rate": 0.05,
-    "max_iter": 3000,
-    "tol": 1e-6,
-}
-
-# Экспериментальные скорости обучения
-LEARNING_RATES_EXPERIMENT = [0.0005, 0.005, 0.02, 0.05, 0.1, 0.25]
-
-# Гиперпараметры стохастического градиентного спуска (SGD)
-SGD_PARAMS = {
-    "learning_rate": 0.01,
-    "decay_rate": 0.0001,
-    "max_iter": 10000,
-    "tol": 1e-6,
-}
-
-# 20 коэффициентов регуляризации в широком логарифмическом диапазоне от 0.001 до 1000
-REGULARIZATION_LAMBDAS = np.logspace(-3, 3, 20)
-
-# Фиксация случайного зерна для 100% воспроизводимости
+# 1. Фиксация зерна генератора псевдослучайных чисел для 100% воспроизводимости
 RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
 
-# Настройки графиков
-PLOT_CONFIG = {
-    "dpi": 300,
-    "style": "whitegrid",
-    "palette": "tab10",
-    "font_scale": 1.1,
-}
+# 2. Подавление несущественных предупреждений
+warnings.filterwarnings("ignore")
+
+# 3. Настройка эстетики графиков Seaborn и Matplotlib
+sns.set_theme(style="whitegrid", font_scale=1.1)
+plt.rcParams["figure.dpi"] = 120
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Arial", "Segoe UI", "Helvetica"]
+plt.rcParams["axes.edgecolor"] = "#2c3e50"
+plt.rcParams["axes.linewidth"] = 1.0
+
+# 4. Настройка форматирования чисел в Pandas
+pd.set_option("display.max_columns", 20)
+pd.set_option("display.width", 1000)
+pd.set_option("display.precision", 4)
+
+# 5. Каталоги для сохранения локальных артефактов и отчета.
+#    Код лежит в ЛР3/Отчет/code, поэтому корень проекта — двумя уровнями выше.
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parents[1]
+SOLUTION_DIR = PROJECT_ROOT / "Решение"
+DATA_PATH = SOLUTION_DIR / "student_performance_featured.csv"
+IMAGES_DIR = SOLUTION_DIR / "images"
+RESULTS_DIR = SOLUTION_DIR / "results"
+REPORT_IMAGES_DIR = PROJECT_ROOT / "Отчет" / "images"
+
+for _directory in (IMAGES_DIR, RESULTS_DIR, REPORT_IMAGES_DIR):
+    _directory.mkdir(parents=True, exist_ok=True)
+
+
+def save_plot(fig, filename):
+    """Сохраняет фигуру в Решение/images и в Отчет/images (как в блокноте)."""
+    fig.tight_layout()
+    target_path = IMAGES_DIR / filename
+    fig.savefig(target_path, dpi=300, bbox_inches="tight")
+    if REPORT_IMAGES_DIR.parent.exists():
+        fig.savefig(REPORT_IMAGES_DIR / filename, dpi=300, bbox_inches="tight")
+    print(f"  [+] График сохранен: {filename}")

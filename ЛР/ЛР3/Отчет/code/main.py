@@ -1,28 +1,20 @@
 """
-Главный исполняемый модуль и точка входа Лабораторной работы №3.
-«Градиентный спуск, стохастический градиентный спуск и регуляризация».
-БГУИР, ФКСиС, Кафедра ПОИТ, 2026.
+Главный исполняемый модуль Лабораторной работы №3.
+Последовательно выполняет ячейки блокнота lab03_gradient_descent.ipynb:
+подготовка данных, проверка класса, четыре вычислительных эксперимента.
 """
 
-import sys
-import time
-from pathlib import Path
+import pandas as pd
 
-# Гарантия корректного вывода кириллицы в консоли Windows
-if sys.stdout and hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
-if sys.stderr and hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8")
-
-from config import IMAGES_DIR, RESULTS_DIR, TARGET_COLUMN
-from visualizer import plot_correlation_matrix
-from data_loader import load_and_prepare_dataset
+from config import HTML, IMAGES_DIR, RESULTS_DIR, display, plt, save_plot, sns
+from data_loader import prepare_data
 from experiments import (
-    run_learning_rate_experiment,
-    run_gd_vs_sgd_experiment,
-    run_regularization_path_experiment,
     run_benchmark_experiment,
+    run_gd_vs_sgd_experiment,
+    run_learning_rate_experiment,
+    run_regularization_experiment,
 )
+from linear_regression import CustomLinearRegression
 
 
 def print_header() -> None:
@@ -38,35 +30,60 @@ def print_header() -> None:
 
 def main() -> None:
     print_header()
-    start_time = time.perf_counter()
+    print("✅ Вычислительная среда успешно инициализирована!")
+    print(f"📌 Папка сохранения графиков: {IMAGES_DIR}")
 
-    # 1. Загрузка и подготовка данных из ЛР2
-    print("\n[ШАГ 1] Загрузка подготовленного набора данных из ЛР2...")
-    data = load_and_prepare_dataset(feature_mode="selected", test_size=0.2)
-    print(f"  [+] Загружено наблюдений: {len(data.df_raw)} строк")
-    print(f"  [+] Размер обучающей выборки (Train): {data.X_train_b.shape[0]} объектов")
-    print(f"  [+] Размер тестовой выборки (Test):   {data.X_test_b.shape[0]} объектов")
-    print(f"  [+] Отобрано признаков: {len(data.feature_names)} (число весов с bias w0 = {data.X_train_b.shape[1]})")
-    print(f"  [+] Признаки: {', '.join(data.feature_names)}")
-    print(f"  [+] Целевая переменная: Exam_Score")
-    print("\n[ШАГ 1.1] Построение и сохранение корреляционной матрицы...")
-    plot_correlation_matrix(data.df_raw, data.feature_names, TARGET_COLUMN)
+    # 1. Подготовка данных (ячейка 2 блокнота)
+    df_raw, X_train_b, X_test_b, y_train, y_test, X_tr_s, X_te_s, feature_names, target_name = prepare_data()
 
-    # 2. Эксперимент 1: Скорость обучения
-    exp1_res = run_learning_rate_experiment(data)
+    print(f"📊 Общий объем выборки: {len(df_raw)} строк")
+    print(f"✅ Пропущенных значений во всем датасете: {df_raw.isna().sum().sum()} (датасет полностью чист)")
+    print(f"📈 Обучающая выборка (Train 80%): X_train_b = {X_train_b.shape}, y_train = {y_train.shape}")
+    print(f"📉 Тестовая выборка   (Test 20%):  X_test_b  = {X_test_b.shape}, y_test  = {y_test.shape}")
+    print(f"📌 Количество признаков m = {len(feature_names)}, векторов весов (с учетом w0) = {X_train_b.shape[1]}")
 
-    # 3. Эксперимент 2: GD vs SGD
-    exp2_res = run_gd_vs_sgd_experiment(data)
+    # Визуализация корреляционной матрицы отобранных признаков с целевой переменной
+    corr_matrix = df_raw[feature_names + [target_name]].corr()
+    plt.figure(figsize=(9, 7))
+    sns.heatmap(corr_matrix, annot=True, fmt=".3f", cmap="coolwarm", cbar=True, square=True, linewidths=0.5)
+    plt.title("Корреляционная матрица Пирсона отобранных факторов успеваемости", fontsize=12, fontweight="bold", pad=12)
+    plt.tight_layout()
+    save_plot(plt.gcf(), "00_correlation_matrix.png")
+    plt.show()
 
-    # 4. Эксперимент 3: Регуляризация (L1 для варианта 2 и L2)
-    exp3_res = run_regularization_path_experiment(data)
+    # Табличный предпросмотр первых строк (ячейка 2 блокнота)
+    display(HTML("<b>Таблица 1 — Первые 5 наблюдений стандартизованной обучающей выборки:</b>"))
+    df_preview = pd.DataFrame(X_train_b[:5], columns=["x0 (bias)"] + feature_names)
+    df_preview["Target: Exam_Score"] = y_train[:5]
+    display(df_preview.style.format("{:.4f}"))
 
-    # 5. Эксперимент 4: Сравнение со Scikit-Learn
-    exp4_res = run_benchmark_experiment(data)
+    # 2. Проверка класса (ячейка 3 блокнота)
+    ols_test = CustomLinearRegression(method="normal_eq").fit(X_train_b, y_train)
+    print("✅ Класс CustomLinearRegression успешно реализован!")
+    print(
+        f"📊 Аналитическое МНК-решение: Test MSE = {ols_test.mse(X_test_b, y_test):.4f}, "
+        f"R² = {ols_test.score(X_test_b, y_test):.4f}"
+    )
+    print(f"📌 Свободный член w0 (intercept) = {ols_test.intercept_:.4f}")
 
-    total_time = time.perf_counter() - start_time
-    print("\n" + "=" * 80)
-    print(f"  [✓] Все расчеты и эксперименты успешно завершены за {total_time:.2f} сек.")
+    # 3. Эксперименты 1–4
+    run_learning_rate_experiment(X_train_b, X_test_b, y_train, y_test)
+    exp2 = run_gd_vs_sgd_experiment(X_train_b, X_test_b, y_train, y_test)
+    run_regularization_experiment(X_train_b, y_train, feature_names)
+    run_benchmark_experiment(
+        X_train_b,
+        X_test_b,
+        X_tr_s,
+        X_te_s,
+        y_train,
+        y_test,
+        feature_names,
+        exp2["bgd_model"],
+        exp2["sgd_model"],
+    )
+
+    print("=" * 80)
+    print("  [✓] Все расчеты и эксперименты успешно завершены.")
     print(f"  [✓] Графические артефакты сохранены в папку: {IMAGES_DIR}")
     print(f"  [✓] Сводные таблицы и CSV сохранены в папку: {RESULTS_DIR}")
     print("=" * 80)

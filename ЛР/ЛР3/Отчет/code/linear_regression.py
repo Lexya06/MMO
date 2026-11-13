@@ -2,202 +2,188 @@
 Модуль собственной реализации линейной регрессии с оптимизацией методами:
 - Batch Gradient Descent (BGD / GD)
 - Stochastic Gradient Descent (SGD)
-- L1-регуляризация (Lasso) через субградиентный спуск и Soft-Thresholding (ISTA)
-- L2-регуляризация (Ridge) через градиентный спуск со сжатием весов (Weight Decay)
+- L1-регуляризация (Lasso) через проксимальный оператор Soft-Thresholding (ISTA)
+- L2-регуляризация (Ridge) через сжатие весов (Weight Decay)
+- Аналитическое МНК-решение (normal_eq)
+
+Полностью повторяет ячейку «КЛАСС КАСТОМНОЙ ЛИНЕЙНОЙ РЕГРЕССИИ НА ЧИСТОМ NUMPY»
+блокнота lab03_gradient_descent.ipynb.
 """
 
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional
+
 import numpy as np
+
+from config import RANDOM_SEED
 
 
 class CustomLinearRegression:
     """
-    Пользовательская модель линейной регрессии, обучаемая методами градиентного спуска.
-
-    Параметры:
-    ----------
-    method : {'gd', 'sgd', 'l1', 'l2'}, default='gd'
-        Метод оптимизации функционала качества:
-        - 'gd': классический (пакетный) градиентный спуск;
-        - 'sgd': стохастический градиентный спуск с выбором одного объекта;
-        - 'l1': градиентный спуск с L1-регуляризацией (Lasso);
-        - 'l2': градиентный спуск с L2-регуляризацией (Ridge).
-    learning_rate : float, default=0.05
-        Базовый шаг градиентного спуска (eta).
-    max_iter : int, default=3000
-        Максимальное число итераций оптимизации.
-    tol : float, default=1e-6
-        Критерий остановки по норме разности весов: ||w^k - w^{k-1}|| < tol.
-    lmbd : float, default=0.0
-        Коэффициент регуляризации (lambda).
-    decay_rate : float, default=0.0
-        Параметр затухания скорости обучения для SGD: eta_k = eta_0 / (1 + decay * k).
-    l1_solver : {'soft_threshold', 'subgradient'}, default='soft_threshold'
-        Способ решения L1: Soft-Thresholding (ISTA, точное зануление) или субградиент.
-    record_loss_every : int, default=1
-        Частота записи значения MSE в историю.
-    random_state : Optional[int], default=42
-        Случайное зерно для воспроизводимости стохастического выбора объектов.
+    Класс множественной линейной регрессии на чистом NumPy,
+    реализующий алгоритмы обучения в соответствии со стандартами Scikit-Learn:
+    - gd: Пакетный градиентный спуск (BGD)
+    - sgd: Стохастический градиентный спуск (SGD) с расписанием Роббинса-Монро
+    - l1: Градиентный спуск с L1-регуляризацией (Lasso) через оператор ISTA
+    - l2: Градиентный спуск с L2-регуляризацией (Ridge) через Weight Decay
+    - normal_eq: Аналитическое МНК-решение нормального уравнения Гаусса
     """
 
     def __init__(
         self,
-        method: Literal["gd", "sgd", "l1", "l2"] = "gd",
+        method: Literal["gd", "sgd", "l1", "l2", "normal_eq"] = "gd",
         learning_rate: float = 0.05,
         max_iter: int = 3000,
         tol: float = 1e-6,
         lmbd: float = 0.0,
         decay_rate: float = 0.0,
-        l1_solver: Literal["soft_threshold", "subgradient"] = "soft_threshold",
         record_loss_every: int = 1,
-        random_state: Optional[int] = 42,
+        random_state: Optional[int] = RANDOM_SEED,
     ):
+        """
+        Инициализация гиперпараметров регрессионной модели:
+        :param method: Метод обучения ('gd', 'sgd', 'l1', 'l2', 'normal_eq')
+        :param learning_rate: Темп (шаг) градиентного спуска (eta > 0)
+        :param max_iter: Максимальное допустимое число итераций
+        :param tol: Критерий ранней остановки по норме смещения весов ||Delta w|| < tol
+        :param lmbd: Коэффициент силы регуляризации (штраф за сложность модели)
+        :param decay_rate: Коэффициент затухания шага обучения по Роббинсу-Монро (для SGD)
+        :param record_loss_every: Периодичность сохранения истории MSE и параметров
+        :param random_state: Фиксатор генератора случайных чисел для воспроизводимости
+        """
         self.method = method
         self.learning_rate = learning_rate
         self.max_iter = max_iter
         self.tol = tol
         self.lmbd = lmbd
         self.decay_rate = decay_rate
-        self.l1_solver = l1_solver
         self.record_loss_every = record_loss_every
         self.random_state = random_state
 
-        # Атрибуты, формируемые после обучения
-        self.weights_: Optional[np.ndarray] = None  # Полный вектор [w0, w1, ..., wm]
-        self.intercept_: Optional[float] = None     # w0
-        self.coef_: Optional[np.ndarray] = None      # [w1, ..., wm]
-        self.loss_history_: List[float] = []        # История MSE
-        self.weights_history_: List[np.ndarray] = []# История весов
-        self.n_iter_: int = 0                       # Реальное число шагов
-        self.converged_: bool = False               # Флаг сходимости по tol
+        # Вычисляемые атрибуты процесса обучения
+        self.weights_: Optional[np.ndarray] = None
+        self.intercept_: Optional[float] = None
+        self.coef_: Optional[np.ndarray] = None
+        self.loss_history_: List[float] = []
+        self.weights_history_: List[np.ndarray] = []
+        self.n_iter_: int = 0
+        self.converged_: bool = False
 
     @staticmethod
     def _add_bias(X: np.ndarray) -> np.ndarray:
-        """Добавляет фиктивный единичный столбец x0 = 1, если он отсутствует."""
+        """Добавляет фиктивный единичный столбец x0 = 1, если он не добавлен."""
         if X.ndim == 1:
             X = X.reshape(-1, 1)
         if np.allclose(X[:, 0], 1.0):
             return X
-        ones = np.ones((X.shape[0], 1), dtype=np.float64)
-        return np.hstack([ones, X])
+        return np.hstack([np.ones((X.shape[0], 1), dtype=np.float64), X])
 
     @staticmethod
     def _compute_mse(X_b: np.ndarray, y: np.ndarray, w: np.ndarray) -> float:
-        """Вычисляет среднеквадратичную ошибку (MSE) для текущих весов."""
-        errors = X_b.dot(w) - y
-        return float(np.mean(errors ** 2))
-
-    @staticmethod
-    def _soft_threshold(values: np.ndarray, threshold: float) -> np.ndarray:
-        """
-        Проксимальный оператор Soft-Thresholding для L1 регуляризации:
-        S_thresh(v) = sign(v) * max(0, |v| - thresh)
-        """
-        return np.sign(values) * np.maximum(0.0, np.abs(values) - threshold)
+        """Векторное вычисление среднеквадратичной ошибки: MSE = (1/l) * ||X_b * w - y||^2."""
+        residuals = X_b.dot(w) - y
+        return float(np.mean(residuals ** 2))
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "CustomLinearRegression":
         """
-        Обучает линейную регрессию на выборке (X, y).
-
-        Parameters:
-        -----------
-        X : np.ndarray размерности (n_samples, n_features) или (n_samples, n_features + 1)
-            Матрица признаков (с единичным столбцом или без него).
-        y : np.ndarray размерности (n_samples,)
-            Вектор истинных значений целевой переменной.
-
-        Returns:
-        --------
-        self : CustomLinearRegression
+        Обучение параметров линейной модели в соответствии с выбранным методом.
+        :param X: Матрица признаков (l, m) или расширенная матрица (l, m+1) с единичной колонкой
+        :param y: Вектор целевых значений (l,)
         """
         X_b = self._add_bias(X)
-        n_samples, n_features_with_bias = X_b.shape
-        y = np.asarray(y, dtype=np.float64)
+        n_samples, n_features = X_b.shape
+        y = y.astype(np.float64)
 
-        rng = np.random.RandomState(self.random_state)
-
-        # 1. Инициализация начальных весов w^0 и ε
-        w = np.zeros(n_features_with_bias, dtype=np.float64)
+        # Очистка истории предыдущих обучений
         self.loss_history_ = []
         self.weights_history_ = []
         self.converged_ = False
 
-        # Запись начальной ошибки до первого шага
-        initial_mse = self._compute_mse(X_b, y, w)
-        self.loss_history_.append(initial_mse)
+        # 1. Аналитическое МНК-решение: w* = (X_b^T X_b)^(-1) X_b^T y
+        if self.method == "normal_eq":
+            XtX = X_b.T.dot(X_b)
+            # Добавка 1e-9*I для численной устойчивости обращения матрицы
+            XtX_reg = XtX + 1e-9 * np.eye(n_features)
+            Xty = X_b.T.dot(y)
+            w = np.linalg.solve(XtX_reg, Xty)
+
+            self.weights_ = w
+            self.intercept_ = float(w[0])
+            self.coef_ = w[1:].copy()
+            self.n_iter_ = 1
+            self.converged_ = True
+            self.loss_history_.append(self._compute_mse(X_b, y, w))
+            self.weights_history_.append(w.copy())
+            return self
+
+        # 2. Инициализация весов нулями
+        w = np.zeros(n_features, dtype=np.float64)
+        rng = np.random.RandomState(self.random_state)
+
+        # Сохранение начального состояния
+        self.loss_history_.append(self._compute_mse(X_b, y, w))
         self.weights_history_.append(w.copy())
 
-        # 2. Организовать цикл по количеству итераций
+        # Итерационный цикл оптимизации
         for k in range(1, self.max_iter + 1):
             w_prev = w.copy()
 
             if self.method == "gd":
-                # 3. Расчет новых весов: w^k = w^{k-1} - eta * grad_Q
-                # grad_Q = (2/n) * X^T * (X * w - y)
-                errors = X_b.dot(w_prev) - y
-                grad = (2.0 / n_samples) * X_b.T.dot(errors)
+                # Пакетный градиентный спуск: точный градиент по всей обучающей выборке
+                residuals = X_b.dot(w_prev) - y
+                grad = (2.0 / n_samples) * X_b.T.dot(residuals)
                 w = w_prev - self.learning_rate * grad
 
             elif self.method == "sgd":
-                # Стохастический градиентный спуск: выбор одного случайного объекта
-                idx = rng.randint(0, n_samples)
-                x_i = X_b[idx]
-                y_i = y[idx]
-                pred_i = np.dot(x_i, w_prev)
-                error_i = pred_i - y_i
-                grad_i = 2.0 * error_i * x_i
+                # Стохастический градиентный спуск: градиент по 1 случайному объекту
+                rand_idx = rng.randint(0, n_samples)
+                x_i = X_b[rand_idx]
+                y_i = y[rand_idx]
 
-                # Расписание скорости обучения Robbins-Monro
-                if self.decay_rate > 0:
-                    eta_k = self.learning_rate / (1.0 + self.decay_rate * k)
-                else:
-                    eta_k = self.learning_rate
+                # Стохастический градиент
+                grad_i = 2.0 * (np.dot(x_i, w_prev) - y_i) * x_i
 
+                # Расписание затухания шага Роббинса-Монро
+                eta_k = self.learning_rate / (1.0 + self.decay_rate * k)
                 w = w_prev - eta_k * grad_i
 
             elif self.method == "l1":
-                # L1-регуляризация (Lasso): смещение w0 НЕ регуляризуется!
-                errors = X_b.dot(w_prev) - y
-                grad_mse = (2.0 / n_samples) * X_b.T.dot(errors)
+                # L1 Lasso: проксимальный градиентный спуск Soft-Thresholding (ISTA)
+                residuals = X_b.dot(w_prev) - y
+                grad_mse = (2.0 / n_samples) * X_b.T.dot(residuals)
 
-                if self.l1_solver == "soft_threshold":
-                    # Проксимальный градиентный шаг (ISTA)
-                    w_temp = w_prev - self.learning_rate * grad_mse
-                    w = np.zeros_like(w_prev)
-                    w[0] = w_temp[0]  # w0 без штрафа
-                    w[1:] = self._soft_threshold(w_temp[1:], self.learning_rate * self.lmbd)
-                else:
-                    # Субградиентный шаг
-                    subgrad = np.zeros_like(w_prev)
-                    subgrad[0] = grad_mse[0]
-                    subgrad[1:] = grad_mse[1:] + self.lmbd * np.sign(w_prev[1:])
-                    w = w_prev - self.learning_rate * subgrad
+                # Обычный градиентный шаг
+                w_tilde = w_prev - self.learning_rate * grad_mse
+
+                # w0 (bias) не регуляризуется
+                w[0] = w_tilde[0]
+
+                # Оператор мягкого порога Soft-Thresholding для весов признаков w1..m
+                threshold = self.learning_rate * self.lmbd
+                w[1:] = np.sign(w_tilde[1:]) * np.maximum(0.0, np.abs(w_tilde[1:]) - threshold)
 
             elif self.method == "l2":
-                # L2-регуляризация (Ridge): смещение w0 НЕ регуляризуется!
-                errors = X_b.dot(w_prev) - y
-                grad_mse = (2.0 / n_samples) * X_b.T.dot(errors)
+                # L2 Ridge: безусловно устойчивый оператор сжатия Weight Decay
+                residuals = X_b.dot(w_prev) - y
+                grad_mse = (2.0 / n_samples) * X_b.T.dot(residuals)
 
-                w = np.zeros_like(w_prev)
-                # w0 обновляется стандартным шагом GD
+                # w0 (bias) не регуляризуется
                 w[0] = w_prev[0] - self.learning_rate * grad_mse[0]
-                # Безусловно устойчивый оператор сжатия для признаков w_1..m:
-                # w^{k} = (w^{k-1} - eta * grad_mse) / (1 + 2 * eta * lambda)
+
+                # Неявный шаг сжатия весов
                 w[1:] = (w_prev[1:] - self.learning_rate * grad_mse[1:]) / (
                     1.0 + 2.0 * self.learning_rate * self.lmbd
                 )
             else:
                 raise ValueError(f"Неизвестный метод оптимизации: {self.method}")
 
-            # Запись истории ошибки
+            # Запись истории изменения функции потерь
             if k % self.record_loss_every == 0 or k == self.max_iter:
-                current_mse = self._compute_mse(X_b, y, w)
-                self.loss_history_.append(current_mse)
+                self.loss_history_.append(self._compute_mse(X_b, y, w))
                 self.weights_history_.append(w.copy())
 
-            # 4. Завершить цикл, если ||w^k - w^{k-1}|| < tol (или для SGD проверка сходимости)
-            diff_norm = float(np.linalg.norm(w - w_prev))
-            if diff_norm < self.tol:
+            # Проверка критерия останова: ||w^k - w^{k-1}|| < tol
+            step_norm = float(np.linalg.norm(w - w_prev))
+            if step_norm < self.tol:
                 self.converged_ = True
                 self.n_iter_ = k
                 break
@@ -210,32 +196,23 @@ class CustomLinearRegression:
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Вычисляет предсказания целевой переменной: y_hat = X_b * w.
-        """
+        """Прогнозирование целевой переменной: y_pred = X_b * w."""
         if self.weights_ is None:
-            raise RuntimeError("Модель еще не обучена! Вызовите .fit() перед вызовом .predict().")
+            raise RuntimeError("Модель не обучена. Вызовите .fit().")
         X_b = self._add_bias(X)
         return X_b.dot(self.weights_)
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
-        """
-        Вычисляет коэффициент детерминации R^2:
-        R^2 = 1 - SS_res / SS_tot
-        """
+        """Коэффициент детерминации R^2."""
         y_pred = self.predict(X)
         ss_res = np.sum((y - y_pred) ** 2)
         ss_tot = np.sum((y - np.mean(y)) ** 2)
-        if ss_tot == 0:
-            return 0.0
-        return float(1.0 - (ss_res / ss_tot))
+        return float(1.0 - (ss_res / ss_tot)) if ss_tot != 0 else 0.0
 
     def mse(self, X: np.ndarray, y: np.ndarray) -> float:
-        """Вычисляет среднеквадратичную ошибку (MSE) на переданной выборке."""
-        y_pred = self.predict(X)
-        return float(np.mean((y - y_pred) ** 2))
+        """Среднеквадратичная ошибка (MSE)."""
+        return float(np.mean((y - self.predict(X)) ** 2))
 
     def mae(self, X: np.ndarray, y: np.ndarray) -> float:
-        """Вычисляет среднюю абсолютную ошибку (MAE) на переданной выборке."""
-        y_pred = self.predict(X)
-        return float(np.mean(np.abs(y - y_pred)))
+        """Средняя абсолютная ошибка (MAE)."""
+        return float(np.mean(np.abs(y - self.predict(X))))
