@@ -76,13 +76,13 @@ $$\text{Балл} = w_0 + (w_1 \cdot \text{Часы}) + (w_2 \cdot \text{Пос�
 
 | № в задании | Требование кафедры | Что сделано простыми словами | Где находится код | Графический артефакт | Статус |
 |:---|:---|:---|:---|:---|:---:|
-| **Пункт 1** | Использовать датасет из ЛР для EDA. Признаков $\ge 2$ без учета целевого ($\ge 3$ весов). Масштабирование данных. | Взяли 6 числовых колонок из ЛР2 ($m=6 \ge 2$, с bias $w_0$ получается 7 весов $\ge 3$). Исключили колонку с утечкой (`Score_Improvement`). Отмасштабировали признаки через `StandardScaler` строго на Train. | [`load_and_prepare_dataset()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/data_loader.py#L42-L118) в [data_loader.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/data_loader.py) | Лог размерностей выборок в консоли | **100%** |
-| **Пункт 2** | Самостоятельная функция пакетного градиентного спуска (BGD): инициализация $w^0, \varepsilon$; цикл итераций; расчет $w^k = w^{k-1} - \eta \nabla Q$; останов при $\|w^k - w^{k-1}\| < \varepsilon$. | Написали класс `CustomLinearRegression(method='gd')`. Инициализировали веса нулями, считаем векторный градиент $\frac{2}{n} X_b^T (X_b w - y)$, сдвигаем веса и останавливаемся при длине шага сдвига $< 10^{-6}$. | [`CustomLinearRegression.fit()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py#L90-L198) в [linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py) | Таблица сходимости в консоли | **100%** |
-| **Пункт 3** | Эксперимент со скоростью обучения ($\eta$). Сделать выводы. | Проверили 6 скоростей $\eta$ от $0.0005$ до $0.25$. Построили графики с понятными числами на шкале ошибок. Доказали, что при хорошем шаге $\eta=0.25$ модель находит минимум всего за **27 шагов**. | [`run_learning_rate_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L32-L78) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [01_learning_rate_experiment.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/01_learning_rate_experiment.png) | **100%** |
-| **Пункт 4** | Добавить в функцию выбор случайного объекта на каждой итерации (SGD). | Реализовали стохастический спуск: на каждом шаге случайно берем одного студента, считаем градиент только по нему и делаем шаг с затухающей скоростью $\eta_k = \frac{\eta_0}{1 + \alpha k}$. | [`CustomLinearRegression.fit(method='sgd')`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py#L129-L146) в [linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py) | Лог стохастического обучения | **100%** |
-| **Пункт 5** | Обучить линейную модель при помощи GD и SGD. Нанести MSE обоих методов на один график, сделать выводы. | Построили график с двумя панелями: слева — полный спуск обоих методов от 4500 до 2.24 по логарифмической шкале с обычными числами; справа — увеличенный масштаб дна (линейная шкала), где наглядно видна гладкость BGD и колебания SGD. | [`run_gd_vs_sgd_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L81-L150) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [02_gd_vs_sgd_convergence.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/02_gd_vs_sgd_convergence.png) | **100%** |
-| **Пункт 6** | Для четных вариантов реализовать L1 регуляризацию, для нечетных — L2. Взять 20 коэффициентов $\lambda \in [0.001, 1000]$ и показать на графике изменение весов. | **Вариант 2 — четный: реализовали L1 (Lasso)** через мягкий порог (Soft-Thresholding). **Дополнительно сделали L2 (Ridge)** через Weight Decay. Для 20 значений $\lambda$ построили графики: L1 строго зануляет признаки в ноль (отбор), а L2 лишь плавно сжимает их. | [`run_regularization_path_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L153-L245) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [03_l1_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/03_l1_regularization_path.png), [04_l2_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/04_l2_regularization_path.png), [05_regularization_comparison.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/05_regularization_comparison.png) | **100%** |
-| **Бонус** | Сравнение с библиотекой Scikit-Learn. | Проверили наши модели против `LinearRegression`, `SGDRegressor`, `Lasso`, `Ridge`. Веса и ошибки совпали с библиотечными с точностью до 4 знаков после запятой! | [`run_benchmark_experiment()`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py#L248-L336) в [experiments.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/experiments.py) | [06_model_validation_benchmark.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/06_model_validation_benchmark.png) | **100%** |
+| **Пункт 1** | Использовать датасет из ЛР для EDA. Признаков $\ge 2$ без учета целевого ($\ge 3$ весов). Масштабирование данных. | Взяли 6 числовых колонок из ЛР2 ($m=6 \ge 2$, с bias $w_0$ получается 7 весов $\ge 3$). Исключили колонку с утечкой (`Score_Improvement`). Отмасштабировали признаки через `StandardScaler` строго на Train. | Раздел 2: Подготовка данных в [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb) | Лог размерностей выборок в консоли | **100%** |
+| **Пункт 2** | Самостоятельная функция пакетного градиентного спуска (BGD): инициализация $w^0, \varepsilon$; цикл итераций; расчет $w^k = w^{k-1} - \eta \nabla Q$; останов при $\|w^k - w^{k-1}\| < \varepsilon$. | Написали класс `CustomLinearRegression(method='gd')`. Инициализировали веса нулями, считаем векторный градиент $\frac{2}{n} X_b^T (X_b w - y)$, сдвигаем веса и останавливаемся при длине шага сдвига $< 10^{-6}$. | Раздел 3: Класс `CustomLinearRegression` в [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb) | Таблица сходимости в консоли | **100%** |
+| **Пункт 3** | Эксперимент со скоростью обучения ($\eta$). Сделать выводы. | Проверили 6 скоростей $\eta$ от $0.0005$ до $0.25$. Построили графики с понятными числами на шкале ошибок. Доказали, что при хорошем шаге $\eta=0.25$ модель находит минимум всего за **27 шагов**. | Раздел 4: Эксперимент с Learning Rate в [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb) | [01_learning_rate_experiment.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/01_learning_rate_experiment.png) | **100%** |
+| **Пункт 4** | Добавить в функцию выбор случайного объекта на каждой итерации (SGD). | Реализовали стохастический спуск: на каждом шаге случайно берем одного студента, считаем градиент только по нему и делаем шаг с затухающей скоростью $\eta_k = \frac{\eta_0}{1 + \alpha k}$. | Раздел 3 и 5: Метод SGD с расписанием в [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb) | Лог стохастического обучения | **100%** |
+| **Пункт 5** | Обучить линейную модель при помощи GD и SGD. Нанести MSE обоих методов на один график, сделать выводы. | Построили график с двумя панелями: слева — полный спуск обоих методов от 4500 до 2.24 по логарифмической шкале с обычными числами; справа — увеличенный масштаб дна (линейная шкала), где наглядно видна гладкость BGD и колебания SGD. | Раздел 5: Сравнение GD и SGD в [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb) | [02_gd_vs_sgd_convergence.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/02_gd_vs_sgd_convergence.png) | **100%** |
+| **Пункт 6** | Для четных вариантов реализовать L1 регуляризацию, для нечетных — L2. Взять 20 коэффициентов $\lambda \in [0.001, 1000]$ и показать на графике изменение весов. | **Вариант 2 — четный: реализовали L1 (Lasso)** через мягкий порог (Soft-Thresholding). **Дополнительно сделали L2 (Ridge)** через Weight Decay. Для 20 значений $\lambda$ построили графики: L1 строго зануляет признаки в ноль (отбор), а L2 лишь плавно сжимает их. | Раздел 6: Регуляризационные пути L1/L2 в [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb) | [03_l1_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/03_l1_regularization_path.png), [04_l2_regularization_path.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/04_l2_regularization_path.png), [05_regularization_comparison.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/05_regularization_comparison.png) | **100%** |
+| **Бонус** | Сравнение с библиотекой Scikit-Learn. | Проверили наши модели против `LinearRegression`, `SGDRegressor`, `Lasso`, `Ridge`. Веса и ошибки совпали с библиотечными с точностью до 4 знаков после запятой! | Раздел 7: Сверка с Scikit-Learn в [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb) | [06_model_validation_benchmark.png](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/images/06_model_validation_benchmark.png) | **100%** |
 
 ---
 
@@ -91,27 +91,21 @@ $$\text{Балл} = w_0 + (w_1 \cdot \text{Часы}) + (w_2 \cdot \text{Пос�
 ### 2.1. Структура файлов проекта
 ```text
 C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\
-├── lab03_gradient_descent.ipynb          # ⭐ Интерактивный Jupyter Notebook со всеми графиками и выводами
+├── lab03_gradient_descent.ipynb          # ⭐ Автономный Jupyter Notebook со всеми расчетами, графиками и выводами
 ├── README.md                             # Документация проекта, шпаргалка к защите и разбор кода
+├── student_performance_featured.csv      # Подготовленный датасет успеваемости студентов (6607 строк)
 ├── Задание/
 │   └── ЛР 03 Градиентный спуск.docx       # Исходный документ с требованиями кафедры ПОИТ
 ├── Решение/
-│   ├── lab03_gradient_descent.ipynb      # Копия рабочего ноутбука в каталоге Решение
-│   ├── build_notebook.py                 # Программный сборщик и валидатор ноутбука (nbclient)
-│   ├── config.py                         # Конфигурация: признаки, сетка lambda, seed=42
-│   ├── data_loader.py                    # Загрузка датасета ЛР2, разбиение Train/Test, скейлер
-│   ├── linear_regression.py              # Класс CustomLinearRegression: BGD, SGD, L1, L2, МНК
-│   ├── experiments.py                    # Запуск 4 вычислительных экспериментов, расчет таблиц
-│   ├── visualizer.py                     # Отрисовка всех графиков в качестве 300 DPI
-│   ├── main.py                           # Главный консольный запускающий модуль
-│   ├── solution.py                       # Точка быстрого старта (python solution.py)
+│   ├── lab03_gradient_descent.ipynb      # Рабочий блокнот в каталоге Решение
+│   ├── student_performance_featured.csv  # Локальная копия датасета
 │   ├── images/                           # Графические артефакты высокого разрешения (Рис. 0–6)
 │   └── results/                          # Сгенерированные CSV-файлы с расчетами
 └── Отчет/
     ├── README.md                         # Документация и шпаргалка для защиты
     ├── report.tex                        # Академический отчет в LaTeX по стандарту СТП 01-2017
     ├── images/                           # Актуальные графики (300 DPI) для компиляции отчета
-    ├── code/                             # Исходный код модулей
+    ├── code/                             # Исходный код ключевых модулей
     └── Отчет_Overleaf/                   # Комплект для Overleaf:
         ├── report.tex                    # Исходник отчета
         ├── images/                       # Папка с иллюстрациями
@@ -126,18 +120,11 @@ C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\
   cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
   .\.venv\Scripts\python.exe -m jupyter notebook lab03_gradient_descent.ipynb
   ```
-- **Автоматический перезапуск и валидация всех ячеек «с нуля»:**
+- **Автоматический перезапуск и валидация всех ячеек «с нуля» через nbconvert:**
   ```powershell
   cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
-  .\.venv\Scripts\python.exe build_notebook.py
+  .\.venv\Scripts\python.exe -m nbconvert --to notebook --execute lab03_gradient_descent.ipynb --inplace
   ```
-
-### 2.3. Запуск консольного пайплайна
-Для пакетного выполнения всех расчетов и обновления файлов графиков и CSV:
-```powershell
-cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
-.\.venv\Scripts\python.exe solution.py
-```
 
 ---
 
@@ -182,9 +169,9 @@ cd "C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР3\Решение"
 Во 2-й лабораторной мы создавали колонку $\text{Score\_Improvement} = \text{Exam\_Score} - \text{Previous\_Scores}$.  
 Если оставить эту колонку в таблице, модель мгновенно поймет: $\text{Exam\_Score} = \text{Score\_Improvement} + \text{Previous\_Scores}$. Она покажет фальшивую 100% точность. Но в реальной жизни студент приходит на экзамен, его оценка еще **неизвестна**, и посчитать `Score_Improvement` невозможно! Мы обязательно исключили эту колонку.
 
-#### 💻 Код реализации ([data_loader.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/data_loader.py)):
+#### 💻 Код реализации (ячейка 4 блокнота [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb)):
 ```python
-# data_loader.py (строки 74-106)
+# lab03_gradient_descent.ipynb (ячейка 4)
 X_train_raw, X_test_raw, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
@@ -245,9 +232,9 @@ X_test_b = np.hstack([ones_test, X_test_scaled])
 - **Критерий остановки:**
   Считаем евклидово расстояние смещения весов: $\sqrt{\sum (w_j^{новый} - w_j^{старый})^2} < \varepsilon$.
 
-#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py)):
+#### 💻 Код реализации (ячейка 6 блокнота [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb)):
 ```python
-# linear_regression.py (строки 114-127, 185-194)
+# lab03_gradient_descent.ipynb (ячейка 6, метод gd)
 # 1. Начальные веса - нули
 w = np.zeros(n_features_with_bias, dtype=np.float64)
 
@@ -331,9 +318,9 @@ $$\eta \in [0.0005, 0.005, 0.02, 0.05, 0.1, 0.25]$$
 $$\eta_k = \frac{\eta_0}{1 + 0.0001 \cdot k}$$
 В начале, пока модель ничего не знает, шаги большие и смелые. Ближе к концу шаги становятся микроскопическими, и модель аккуратно замирает в точке наименьшей ошибки.
 
-#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py)):
+#### 💻 Код реализации (ячейка 6 блокнота [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb)):
 ```python
-# linear_regression.py (строки 129-146)
+# lab03_gradient_descent.ipynb (ячейка 6, метод sgd)
 elif self.method == "sgd":
     # 1. Выбираем случайного студента
     idx = rng.randint(0, n_samples)
@@ -396,9 +383,9 @@ elif self.method == "sgd":
 К каждому весу признака применяется правило: если сила признака слабее величины штрафа $\eta \lambda$, то вес **принудительно обнуляется в 0**:
 $$w_j = \text{sign}(w_j) \cdot \max(0, |w_j| - \eta \lambda)$$
 
-#### 💻 Код реализации ([linear_regression.py](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/linear_regression.py)):
+#### 💻 Код реализации (ячейка 6 блокнота [`lab03_gradient_descent.ipynb`](file:///C:/Users/ASUS/BSUIR/7%20семестр/ММО/ЛР/ЛР3/Решение/lab03_gradient_descent.ipynb)):
 ```python
-# linear_regression.py (строки 148-164)
+# lab03_gradient_descent.ipynb (ячейка 6, метод l1)
 elif self.method == "l1":
     errors = X_b.dot(w_prev) - y
     grad_mse = (2.0 / n_samples) * X_b.T.dot(errors)
@@ -413,7 +400,21 @@ elif self.method == "l1":
 *Рис. 3. Регуляризационный путь L1 (Lasso) для Варианта 2: веса признаков ложатся строго на ноль один за другим при росте штрафа $\lambda$.*
 
 ![L2 регуляризационный путь](images/04_l2_regularization_path.png)
-*Рис. 4. Регуляризационный путь L2 (Ridge): веса плавно прижимаются к нулю, но никогда не становятся строгим нулем.*
+*Рис. 4. Регуляризационный путь L2 (Ridge): веса плавно асимптотически прижимаются к нулю, но никогда не становятся строгим нулем.*
+
+#### 📊 Подробный физический и математический разбор графика 04 (L2 Ridge Path):
+1. **Что изображено на графике:**
+   - По горизонтальной оси отложен коэффициент регуляризации $\lambda$ в логарифмической шкале от $10^{-3} = 0.001$ до $10^3 = 1000$ (20 равномерно распределенных по экспоненте точек $\log_{10}(\lambda) \in [-3, 3]$).
+   - По вертикальной оси отложены значения весов регрессии $w_j$ для каждого из 6 стандартизованных признаков.
+   - Свободный член $w_0 = 67.10$ (средний базовый балл) вынесен за рамки регуляризации и не штрафуется.
+2. **Динамика весов по диапазонам $\lambda$:**
+   - **Слабая регуляризация ($\lambda \in [10^{-3}, 10^{-1}]$):** Регуляризационный штраф пренебрежимо мал. Веса практически совпадают с классическим МНК (BGD без регуляризации): `Attendance` $\approx 2.26$, `Hours_Studied` $\approx 1.72$, `Previous_Scores` $\approx 0.69$, `Parental_Involvement` $\approx 0.66$, `Tutoring_Sessions` $\approx 0.58$, `Physical_Activity` $\approx 0.17$.
+   - **Умеренная регуляризация ($\lambda \in [0.1, 10]$):** Начинается активное пропорциональное сжатие всех весов. К $\lambda = 1.44$ веса уменьшаются более чем в 2 раза (`Attendance` падает до $0.92$, `Hours_Studied` до $0.70$). Модель целенаправленно жертвует точностью на Train ради снижения дисперсии (variance) и устойчивости.
+   - **Экстремальная регуляризация ($\lambda \in [10, 1000]$):** При $\lambda = 1000$ штраф доминирует над MSE. Все веса асимптотически стремятся к $0$ (например, $w_{\text{Attendance}} = 0.0022$, $w_{\text{Hours}} = 0.0017$), однако **ни один вес не обращается в точный ноль $0.0000$**. Модель фактически вырождается в тривиальное константное предсказание $\hat{y} \approx w_0 = 67.10$.
+3. **Почему L2 никогда не зануляет веса (в отличие от L1 на графике 03)?**
+   - **Математическая причина:** Градиент квадратичного штрафа $\frac{\partial}{\partial w_j} (\lambda w_j^2) = 2\lambda w_j$ линейно зависит от самого веса $w_j$. Когда вес становится очень маленьким ($w_j \to 0$), сила штрафа тоже стремится к нулю ($2\lambda w_j \to 0$). Поэтому штраф не способен сделать «последний шаг» и обнулить вес до конца.
+   - **Геометрическая интерпретация (шар Лебедевича):** Линии уровня квадратичной ошибки MSE касаются гладкой евклидовой сферы $L_2$ ($\sum w_j^2 \le C$) в произвольной точке гладкой границы, а не в вершинах на осях координат (в отличие от ромба $L_1$).
+   - **Физический смысл в задаче успеваемости:** L2 сохраняет вклад абсолютно всех 6 факторов (даже слабых вроде физкультуры `Physical_Activity`), но пропорционально гасит их чувствительность.
 
 ![Сравнение L1 и L2](images/05_regularization_comparison.png)
 *Рис. 5. Сопоставление двух видов регуляризации: слева — отбор признаков (L1 Lasso), справа — плавное сжатие весов (L2 Ridge).*
