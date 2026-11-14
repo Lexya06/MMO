@@ -241,28 +241,64 @@ $C$ --- штраф за попадание точек внутрь раздел�
 Ниже приведен полный программный код решения на языке Python с использованием библиотеки Scikit-Learn:
 
 \begin{CodeListing}
+# 1. Импорт стандартных библиотек Python для анализа данных
+import os
+import sys
+from pathlib import Path
+import warnings
+
+# Численные расчеты и манипуляция табличными данными
 import pandas as pd
 import numpy as np
+
+# Визуализация данных
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Модели машинного обучения из Scikit-Learn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+
+# Метрики качества классификации
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score,
-    roc_auc_score, roc_curve, precision_recall_curve,
-    average_precision_score, confusion_matrix
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    roc_curve,
+    precision_recall_curve,
+    average_precision_score,
+    confusion_matrix
 )
 
+# Подавление предупреждений об устаревании (deprecation) для чистоты вывода
+warnings.filterwarnings("ignore")
+
+# Создаем директорию для сохранения графиков, если она отсутствует
+IMAGES_DIR = Path("images")
+IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Настройки стиля графиков
+plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
 RANDOM_STATE = 42
 
-# 1. Загрузка данных
+print("Интерпретатор Python (venv):", sys.executable)
+print("Все библиотеки успешно подключены! Директория 'images/' готова к сохранению графиков.")
+
+
+# Загрузка датасета
 df = pd.read_csv("healthy_meal_plans.csv")
 
-# 2. Формирование признаков и стратифицированное разбиение
+print(f"Размер датасета: {df.shape[0]} строк, {df.shape[1]} колонок.")
+print("\nПервые 5 строк таблицы:")
+df.head()
+
+
+# 1. Выделяем признаки X и цель y
 features = [
     "num_ingredients", "calories", "prep_time", "protein", "fat", "carbs",
     "vegan", "vegetarian", "keto", "paleo", "gluten_free", "mediterranean"
@@ -270,53 +306,110 @@ features = [
 X = df[features]
 y = df["is_healthy"]
 
+# 2. Разбиваем на train и test (80% на 20%)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.20, random_state=RANDOM_STATE, stratify=y
 )
 
-# 3. Масштабирование вещественных нутриентов (защита от Data Leakage)
+# 3. Стандартизация вещественных нутриентов с помощью StandardScaler
 continuous_cols = ["num_ingredients", "calories", "prep_time", "protein", "fat", "carbs"]
 scaler = StandardScaler()
+
+# Обучаем скейлер ТОЛЬКО на X_train
 X_train_scaled = X_train.copy()
 X_test_scaled = X_test.copy()
+
 X_train_scaled[continuous_cols] = scaler.fit_transform(X_train[continuous_cols])
 X_test_scaled[continuous_cols] = scaler.transform(X_test[continuous_cols])
 
-# 4. Обучение классификаторов
-log_reg = LogisticRegression(class_weight="balanced", C=1.0, max_iter=1000, random_state=RANDOM_STATE)
+print(f"Обучающая выборка: {X_train_scaled.shape[0]} объектов.")
+print(f"Тестовая выборка:   {X_test_scaled.shape[0]} объектов.")
+
+
+# 1. Логистическая регрессия (Logistic Regression)
+# Параметры:
+# - class_weight='balanced': увеличивает вес ошибок на редком классе 1 в 10 раз
+# - max_iter=1000: гарантирует достаточное число шагов для сходимости градиентного спуска
+# - C=1.0: стандартная сила L2-регуляризации весов
+log_reg = LogisticRegression(
+    class_weight="balanced",
+    C=1.0,
+    max_iter=1000,
+    random_state=RANDOM_STATE
+)
 log_reg.fit(X_train_scaled, y_train)
 
-svm_lin = SVC(kernel="linear", C=1.0, class_weight="balanced", probability=True, random_state=RANDOM_STATE)
+# 2. Метод опорных векторов (SVM)
+# 2.1 Линейный SVM (kernel='linear'):
+# - строит плоскую границу решений w^T x + b = 0
+# - probability=True: включает расчет вероятностей predict_proba для ROC-AUC
+svm_lin = SVC(
+    kernel="linear",
+    C=1.0,
+    class_weight="balanced",
+    probability=True,
+    random_state=RANDOM_STATE
+)
 svm_lin.fit(X_train_scaled, y_train)
 
-svm_rbf = SVC(kernel="rbf", C=5.0, gamma="scale", class_weight="balanced", probability=True, random_state=RANDOM_STATE)
+# 2.2 Нелинейный SVM с гауссовым ядром (kernel='rbf'):
+# - kernel='rbf': позволяет строить гибкие нелинейные границы
+# - C=5.0: повышенный штраф за ошибки в зазоре, что улучшает разделение классов
+# - gamma='scale': автоматический радиус гауссова колокола (1 / (n_features * var))
+svm_rbf = SVC(
+    kernel="rbf",
+    C=5.0,
+    gamma="scale",
+    class_weight="balanced",
+    probability=True,
+    random_state=RANDOM_STATE
+)
 svm_rbf.fit(X_train_scaled, y_train)
 
-tree_clf = DecisionTreeClassifier(criterion="gini", max_depth=4, min_samples_split=5, class_weight="balanced", random_state=RANDOM_STATE)
+# 3. Дерево решений (CART - DecisionTreeClassifier)
+# Параметры:
+# - criterion='gini': критерий Джини для поиска наилучшего сплита
+# - max_depth=4: жесткое ограничение глубины дерева для защиты от переобучения
+# - min_samples_split=5: узел делится только если в нем не менее 5 объектов
+# - class_weight='balanced': учет дисбаланса при оценке чистоты узла
+tree_clf = DecisionTreeClassifier(
+    criterion="gini",
+    max_depth=4,
+    min_samples_split=5,
+    class_weight="balanced",
+    random_state=RANDOM_STATE
+)
 tree_clf.fit(X_train_scaled, y_train)
 
-# 5. Расчет метрик моделей
+print("Все модели успешно обучены в Scikit-Learn с заданными гиперпараметрами!")
+
+
+# Собираем словарь моделей для удобного расчета метрик
 models = {
     "Logistic Regression": log_reg,
     "SVM (Linear)": svm_lin,
     "SVM (RBF Kernel)": svm_rbf,
-    "Decision Tree": tree_clf
+    "Decision Tree (CART)": tree_clf
 }
 
-results = []
-for name, m in models.items():
-    pred = m.predict(X_test_scaled)
-    prob = m.predict_proba(X_test_scaled)[:, 1]
-    results.append({
+metrics_list = []
+for name, model in models.items():
+    y_pred = model.predict(X_test_scaled)
+    y_prob = model.predict_proba(X_test_scaled)[:, 1]
+    
+    metrics_list.append({
         "Модель": name,
-        "Accuracy": accuracy_score(y_test, pred),
-        "Precision": precision_score(y_test, pred, zero_division=0),
-        "Recall": recall_score(y_test, pred, zero_division=0),
-        "F1-Score": f1_score(y_test, pred, zero_division=0),
-        "ROC-AUC": roc_auc_score(y_test, prob),
-        "PR-AUC": average_precision_score(y_test, prob)
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred, zero_division=0),
+        "Recall": recall_score(y_test, y_pred, zero_division=0),
+        "F1-Score": f1_score(y_test, y_pred, zero_division=0),
+        "ROC-AUC": roc_auc_score(y_test, y_prob),
+        "PR-AUC": average_precision_score(y_test, y_prob)
     })
-df_metrics = pd.DataFrame(results).sort_values(by="F1-Score", ascending=False)
+
+df_metrics = pd.DataFrame(metrics_list).sort_values(by="F1-Score", ascending=False).reset_index(drop=True)
+print("=== Сводная таблица метрик качества моделей ===")
+df_metrics
 \end{CodeListing}
 
 % ==============================================================================
