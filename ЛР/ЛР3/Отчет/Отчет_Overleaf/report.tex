@@ -679,7 +679,7 @@ display(df_lr.style.format({
     "Test MSE": "{:.4f}",
     "Test R^2": "{:.4f}",
     "Время (мс)": "{:.2f}",
-}).highlight_min(subset=["Итераций", "Время (мс)"], color="#d4edda"))
+}))
 
 # ------------------------------------------------------------------------------
 # ВИЗУАЛИЗАЦИЯ: Динамика сходимости MSE в линейной и логарифмической шкалах
@@ -1027,28 +1027,28 @@ sk_ridge.fit(X_tr_s, y_train)
 
 
 # Оценка моделей и расчет метрик
-def calc_metrics(name: str, model, is_custom: bool = True) -> Dict[str, Any]:
+def calc_metrics(name: str, estimator, is_custom: bool = True) -> Dict[str, Any]:
     if is_custom:
-        intercept = float(model.intercept_)
-        coef = np.ravel(model.coef_)
-        y_pred = np.ravel(model.predict(X_test_b))
+        intercept = float(estimator.intercept_)
+        coef = np.ravel(estimator.coef_)
+        y_pred = np.ravel(estimator.predict(X_test_b))
     else:
-        intercept = float(np.ravel(model.intercept_)[0])
-        coef = np.ravel(model.coef_)
-        y_pred = np.ravel(model.predict(X_te_s))
+        intercept = float(np.ravel(estimator.intercept_)[0])
+        coef = np.ravel(estimator.coef_)
+        y_pred = np.ravel(estimator.predict(X_te_s))
 
     w_norm = float(np.linalg.norm(coef))
-    test_mse = float(mean_squared_error(y_test, y_pred))
-    test_mae = float(mean_absolute_error(y_test, y_pred))
-    test_r2 = float(r2_score(y_test, y_pred))
+    mse_val = float(mean_squared_error(y_test, y_pred))
+    mae_val = float(mean_absolute_error(y_test, y_pred))
+    r2_val = float(r2_score(y_test, y_pred))
 
     return {
         "Модель": name,
         "Intercept (w0)": intercept,
         "Норма весов ||w||": w_norm,
-        "Test MSE": test_mse,
-        "Test MAE": test_mae,
-        "Test R^2": test_r2,
+        "Test MSE": mse_val,
+        "Test MAE": mae_val,
+        "Test R^2": r2_val,
         "_coef": coef,
         "_pred": y_pred,
     }

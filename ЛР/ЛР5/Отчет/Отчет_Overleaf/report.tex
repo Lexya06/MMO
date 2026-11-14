@@ -279,8 +279,8 @@ def gini(labels: np.ndarray) -> float:
     n = len(labels)
     if n == 0:
         return 0.0
-    _, counts = np.unique(labels, return_counts=True)
-    probs = counts / n
+    _, class_counts = np.unique(labels, return_counts=True)
+    probs = class_counts / n
     return float(1.0 - np.sum(probs ** 2))
 
 
@@ -605,9 +605,9 @@ class DecisionTreeClassifierCustom:
         self.threshold_strategy = threshold_strategy
         self.tree = None
 
-    def fit(self, X, y):
+    def fit(self, x, y):
         self.tree = build_tree(
-            data=np.asarray(X),
+            data=np.asarray(x),
             labels=np.asarray(y),
             max_depth=self.max_depth,
             min_samples_leaf=self.min_samples_leaf,
@@ -617,11 +617,11 @@ class DecisionTreeClassifierCustom:
         )
         return self
 
-    def predict(self, X):
-        return predict(np.asarray(X), self.tree)
+    def predict(self, x):
+        return predict(np.asarray(x), self.tree)
 
-    def score(self, X, y):
-        return accuracy_metric(y, self.predict(X))
+    def score(self, x, y):
+        return accuracy_metric(y, self.predict(x))
 
     def print_tree(self, feature_names=None):
         print_tree(self.tree, feature_names=feature_names)
