@@ -238,7 +238,7 @@ $C$ --- штраф за попадание точек внутрь раздел�
 % ==============================================================================
 \section{Код решения индивидуального задания}
 
-Ниже приведен полный программный код решения на языке Python с использованием библиотеки Scikit-Learn:
+Ниже приведен полный программный код решения — все ячейки ноутбука: импорт библиотек, загрузка и разведочный анализ данных, формирование признаков, обучение моделей Scikit-Learn, расчет метрик и графики:
 
 \begin{CodeListing}
 # 1. Импорт стандартных библиотек Python для анализа данных
@@ -289,7 +289,6 @@ RANDOM_STATE = 42
 print("Интерпретатор Python (venv):", sys.executable)
 print("Все библиотеки успешно подключены! Директория 'images/' готова к сохранению графиков.")
 
-
 # Загрузка датасета
 df = pd.read_csv("healthy_meal_plans.csv")
 
@@ -297,6 +296,100 @@ print(f"Размер датасета: {df.shape[0]} строк, {df.shape[1]} �
 print("\nПервые 5 строк таблицы:")
 df.head()
 
+# Проверка пропусков и распределения целевого признака
+print("1. Количество пропусков по колонкам:")
+print(df.isnull().sum())
+
+print("\n2. Распределение классов в is_healthy:")
+counts = df["is_healthy"].value_counts()
+print(counts)
+print(f"Доля класса 1: {counts[1] / len(df) * 100:.2f}%")
+
+# Визуализация распределения классов и сравнения профилей нутриентов (Рисунок 01)
+fig, axes = plt.subplots(1, 2, figsize=(15, 5.5))
+
+# Левый график: распределение классов
+bar_plot = axes[0].bar(
+    ["Обычное (0)", "Полезное (1)"],
+    [counts[0], counts[1]],
+    color=["#4A90E2", "#E74C3C"],
+    edgecolor="black",
+    width=0.45
+)
+axes[0].set_title("Распределение целевого класса (is_healthy)", fontsize=12, fontweight="bold", pad=10)
+axes[0].set_ylabel("Количество рецептов")
+axes[0].set_ylim(0, max(counts.values) * 1.18)
+
+for bar in bar_plot:
+    h = bar.get_height()
+    axes[0].text(
+        bar.get_x() + bar.get_width() / 2,
+        h + 10,
+        f"{h} шт.\n({h / len(df) * 100:.1f}%)",
+        ha="center",
+        va="bottom",
+        fontweight="bold"
+    )
+
+# Правый график: сравнение нутриентов по классам (класс 1 выделен красным цветом)
+nutrients = ["calories", "protein", "fat", "carbs"]
+labels = ["Калории\n(calories)", "Белки\n(protein)", "Жиры\n(fat)", "Углеводы\n(carbs)"]
+x = np.arange(len(nutrients))
+width = 0.35
+
+means_0 = [df[df["is_healthy"] == 0][col].mean() for col in nutrients]
+means_1 = [df[df["is_healthy"] == 1][col].mean() for col in nutrients]
+
+rects1 = axes[1].bar(x - width/2, means_0, width, label="0 (Обычное блюдо)", color="#4A90E2", edgecolor="black")
+# Класс 1 (Здоровое/Полезное блюдо) выделен КРАСНЫМ цветом
+rects2 = axes[1].bar(x + width/2, means_1, width, label="1 (Полезное блюдо)", color="#E74C3C", edgecolor="black")
+
+axes[1].set_title("Сравнение среднего содержания нутриентов по классам", fontsize=12, fontweight="bold", pad=10)
+axes[1].set_ylabel("Нормированное значение признака (от 0 до 1)")
+axes[1].set_xticks(x)
+axes[1].set_xticklabels(labels, fontsize=10)
+axes[1].set_ylim(0, 0.75)
+axes[1].legend(frameon=True, loc="upper right")
+
+# Четкие числовые метки над столбцами без наложения
+for rect in rects1:
+    h = rect.get_height()
+    axes[1].text(rect.get_x() + rect.get_width()/2, h + 0.015, f"{h:.2f}", ha="center", va="bottom", fontsize=9)
+
+for rect in rects2:
+    h = rect.get_height()
+    axes[1].text(rect.get_x() + rect.get_width()/2, h + 0.015, f"{h:.2f}", ha="center", va="bottom", fontsize=9, fontweight="bold", color="#C0392B")
+
+plt.tight_layout()
+
+# Явное сохранение скриншота графика на диск
+img_path_01 = IMAGES_DIR / "01_eda_distribution_and_balance.png"
+fig.savefig(img_path_01, dpi=300)
+print(f"[Сохранено изображение]: {img_path_01}")
+
+plt.show()
+
+# Построение и сохранение матрицы корреляций признаков (Рисунок 02)
+fig, ax = plt.subplots(figsize=(10, 8), dpi=150)
+
+corr_features = [
+    "num_ingredients", "calories", "prep_time", "protein", "fat", "carbs",
+    "vegan", "vegetarian", "keto", "paleo", "gluten_free", "mediterranean", "is_healthy"
+]
+corr_mat = df[corr_features].corr()
+mask = np.triu(np.ones_like(corr_mat, dtype=bool))
+
+sns.heatmap(corr_mat, mask=mask, annot=True, fmt=".2f", cmap="coolwarm", ax=ax, annot_kws={"size": 8})
+ax.set_title("Матрица парных корреляций Пирсона", fontsize=13, fontweight="bold", pad=12)
+
+plt.tight_layout()
+
+# Явное сохранение скриншота графика на диск
+img_path_02 = IMAGES_DIR / "02_correlation_heatmap.png"
+fig.savefig(img_path_02, dpi=300)
+print(f"[Сохранено изображение]: {img_path_02}")
+
+plt.show()
 
 # 1. Выделяем признаки X и цель y
 features = [
@@ -324,7 +417,6 @@ X_test_scaled[continuous_cols] = scaler.transform(X_test[continuous_cols])
 
 print(f"Обучающая выборка: {X_train_scaled.shape[0]} объектов.")
 print(f"Тестовая выборка:   {X_test_scaled.shape[0]} объектов.")
-
 
 # 1. Логистическая регрессия (Logistic Regression)
 # Параметры:
@@ -383,7 +475,6 @@ tree_clf.fit(X_train_scaled, y_train)
 
 print("Все модели успешно обучены в Scikit-Learn с заданными гиперпараметрами!")
 
-
 # Собираем словарь моделей для удобного расчета метрик
 models = {
     "Logistic Regression": log_reg,
@@ -410,6 +501,125 @@ for name, model in models.items():
 df_metrics = pd.DataFrame(metrics_list).sort_values(by="F1-Score", ascending=False).reset_index(drop=True)
 print("=== Сводная таблица метрик качества моделей ===")
 df_metrics
+
+# 1. Матрицы ошибок для трех ключевых алгоритмов (Рисунок 05)
+fig, axes = plt.subplots(1, 3, figsize=(16, 4.5))
+
+plot_models = {
+    "Logistic Regression": log_reg.predict(X_test_scaled),
+    "SVM (RBF Kernel)": svm_rbf.predict(X_test_scaled),
+    "Decision Tree": tree_clf.predict(X_test_scaled)
+}
+
+for idx, (title, pred) in enumerate(plot_models.items()):
+    cm = confusion_matrix(y_test, pred)
+    cm_norm = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
+    
+    # Формируем аккуратные подписи внутри клеток, чтобы текст не слипался
+    labels = np.empty_like(cm, dtype=object)
+    for i in range(2):
+        for j in range(2):
+            labels[i, j] = f"{cm[i, j]}\n({cm_norm[i, j]*100:.1f}%)"
+            
+    sns.heatmap(cm, annot=labels, fmt="", cmap="Blues", cbar=False, ax=axes[idx], annot_kws={"size": 11, "fontweight": "bold"})
+    axes[idx].set_title(title, fontsize=12, fontweight="bold", pad=10)
+    axes[idx].set_xlabel("Предсказанный класс")
+    axes[idx].set_ylabel("Истинный класс")
+    axes[idx].set_xticklabels(["Обычное (0)", "Полезное (1)"])
+    axes[idx].set_yticklabels(["Обычное (0)", "Полезное (1)"])
+
+plt.tight_layout()
+
+# Явное сохранение скриншота графика на диск
+img_path_05 = IMAGES_DIR / "05_confusion_matrices_grid.png"
+fig.savefig(img_path_05, dpi=300)
+print(f"[Сохранено изображение]: {img_path_05}")
+
+plt.show()
+
+# 2. Графики кривых ROC-AUC и PR-AUC (Рисунок 04)
+fig, axes = plt.subplots(1, 2, figsize=(15, 5.5))
+
+curves_info = [
+    ("Logistic Regression", log_reg.predict_proba(X_test_scaled)[:, 1], "#2E7D32"),
+    ("SVM (RBF Kernel)", svm_rbf.predict_proba(X_test_scaled)[:, 1], "#1565C0"),
+    ("Decision Tree", tree_clf.predict_proba(X_test_scaled)[:, 1], "#E65100")
+]
+
+# ROC-кривая
+axes[0].plot([0, 1], [0, 1], "k--", lw=1.5, label="Случайное угадывание (AUC = 0.50)")
+for label, probs, color in curves_info:
+    fpr, tpr, _ = roc_curve(y_test, probs)
+    auc_score = roc_auc_score(y_test, probs)
+    axes[0].plot(fpr, tpr, lw=2, label=f"{label} (AUC = {auc_score:.3f})", color=color)
+
+axes[0].set_title("ROC-кривые", fontsize=12, fontweight="bold", pad=10)
+axes[0].set_xlabel("False Positive Rate (Доля ложных тревог)")
+axes[0].set_ylabel("True Positive Rate (Полнота)")
+axes[0].legend(loc="lower right", frameon=True)
+
+# PR-кривая (Precision-Recall)
+baseline_p = np.mean(y_test)
+axes[1].axhline(y=baseline_p, color="black", linestyle="--", lw=1.5, label=f"Базовый уровень (P = {baseline_p:.2f})")
+for label, probs, color in curves_info:
+    prec, rec, _ = precision_recall_curve(y_test, probs)
+    ap_score = average_precision_score(y_test, probs)
+    axes[1].plot(rec, prec, lw=2, label=f"{label} (PR-AUC = {ap_score:.3f})", color=color)
+
+axes[1].set_title("Precision-Recall кривые", fontsize=12, fontweight="bold", pad=10)
+axes[1].set_xlabel("Recall (Полнота)")
+axes[1].set_ylabel("Precision (Точность)")
+axes[1].legend(loc="upper right", frameon=True)
+
+plt.tight_layout()
+
+# Явное сохранение скриншота графика на диск
+img_path_04 = IMAGES_DIR / "04_roc_pr_curves_comparison.png"
+fig.savefig(img_path_04, dpi=300)
+print(f"[Сохранено изображение]: {img_path_04}")
+
+plt.show()
+
+# Исследование зависимости качества от глубины дерева (Рисунок 06)
+depths = [1, 2, 3, 4, 5, 6, 8, 10, 15]
+depth_results = []
+
+for d in depths:
+    clf = DecisionTreeClassifier(max_depth=d, class_weight="balanced", random_state=RANDOM_STATE)
+    clf.fit(X_train_scaled, y_train)
+    
+    depth_results.append({
+        "Depth": d,
+        "Train_Accuracy": clf.score(X_train_scaled, y_train),
+        "Test_Accuracy": clf.score(X_test_scaled, y_test),
+        "Test_F1": f1_score(y_test, clf.predict(X_test_scaled), zero_division=0)
+    })
+
+df_depth = pd.DataFrame(depth_results)
+
+# Построение графика переобучения
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(df_depth["Depth"], df_depth["Train_Accuracy"], "o-", label="Train Accuracy (Точность на обучении)", color="#1976D2", lw=2)
+ax.plot(df_depth["Depth"], df_depth["Test_Accuracy"], "s--", label="Test Accuracy (Точность на тесте)", color="#388E3C", lw=2)
+ax.plot(df_depth["Depth"], df_depth["Test_F1"], "^-.", label="Test F1-Score (на тесте)", color="#D32F2F", lw=2)
+
+ax.axvline(x=4, color="gray", linestyle=":", lw=1.5, label="Оптимальная глубина (max_depth=4)")
+ax.set_title("Переобучение дерева решений: метрики vs Глубина (max_depth)", fontsize=12, fontweight="bold", pad=10)
+ax.set_xlabel("Глубина дерева (max_depth)")
+ax.set_ylabel("Значение метрики")
+ax.set_xticks(depths)
+ax.legend(frameon=True)
+
+plt.tight_layout()
+
+# Явное сохранение скриншота графика на диск
+img_path_06 = IMAGES_DIR / "06_cart_depth_tuning.png"
+fig.savefig(img_path_06, dpi=300)
+print(f"[Сохранено изображение]: {img_path_06}")
+
+plt.show()
+
+df_depth
 \end{CodeListing}
 
 % ==============================================================================

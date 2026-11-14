@@ -225,9 +225,52 @@
 % ==============================================================================
 \section{Код решения индивидуального задания}
 
-Ниже приведен полный исходный код программной реализации алгоритма решающего дерева CART, математических критериев и класса классификатора:
+Ниже приведен полный исходный код решения — все ячейки ноутбука: реализация алгоритма решающего дерева CART с нуля, критерии Джини и прироста информации, класс классификатора, вычислительные эксперименты и графики:
 
 \begin{CodeListing}
+# Импорт стандартных математических и визуализационных библиотек Python
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Импорт эталонных алгоритмов и метрик из библиотеки Scikit-Learn
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.datasets import make_classification
+
+# Фиксация глобального генератора псевдослучайных чисел для 100% воспроизводимости
+RANDOM_STATE = 42
+np.random.seed(RANDOM_STATE)
+
+# Настройки графиков Matplotlib для исключения наложения текста
+plt.rcParams['figure.figsize'] = (12, 6)
+plt.rcParams['font.size'] = 11
+plt.rcParams['axes.titlesize'] = 13
+plt.rcParams['axes.labelsize'] = 12
+%matplotlib inline
+
+# Определение директорий для сохранения скриншотов графиков при запуске
+BASE_DIR = os.getcwd()
+SAVE_DIRS = [
+    os.path.join(BASE_DIR, 'images'),
+    os.path.abspath(os.path.join(BASE_DIR, '..', 'Отчет', 'images')),
+    os.path.abspath(os.path.join(BASE_DIR, '..', 'Отчет', 'Отчет_Overleaf', 'images'))
+]
+for d in SAVE_DIRS:
+    os.makedirs(d, exist_ok=True)
+
+def save_plot(filename: str):
+    """Автоматическое синхронное сохранение сгенерированного графика в папки отчета и решения."""
+    for d in SAVE_DIRS:
+        target_file = os.path.join(d, filename)
+        plt.savefig(target_file, dpi=300, bbox_inches='tight')
+    print(f"[Скриншот графика успешно сгенерирован и сохранен]: {filename}")
+
+print(f"Все библиотеки импортированы. random_state = {RANDOM_STATE}. Папки images синхронизированы.")
+
 import numpy as np
 
 def gini(labels: np.ndarray) -> float:
@@ -274,6 +317,91 @@ print(f"Gini смешанной выборки [0, 0, 1, 1]: {gini(demo_mixed):.
 ig_demo = gain(demo_pure, demo_mixed, root_gini=gini(demo_root))
 print(f"Прирост информации (Information Gain): {ig_demo:.4f}")
 
+# Графическое сопоставление критериев информативности для бинарной классификации
+p = np.linspace(1e-5, 1.0 - 1e-5, 500)
+gini_curve = 2.0 * p * (1.0 - p)
+entropy_curve = -(p * np.log2(p) + (1.0 - p) * np.log2(1.0 - p))
+misclass_curve = 1.0 - np.maximum(p, 1.0 - p)
+
+plt.figure(figsize=(10, 5.5))
+plt.plot(p, entropy_curve, label=r'Энтропия Шеннона $H(p) = -\sum p_k \log_2 p_k$', color='#D9534F', lw=2.2)
+plt.plot(p, gini_curve, label=r'Критерий Джини $H_{Gini}(p) = 1 - \sum p_k^2$', color='#0275D8', lw=2.2)
+plt.plot(p, misclass_curve, label=r'Ошибка классификации $E(p) = 1 - \max(p_k)$', color='#5CB85C', lw=2.0, ls='--')
+
+# Подробные подписи без наложения
+plt.title('Сопоставление теоретических критериев информативности для бинарной классификации', pad=15, fontsize=13)
+plt.xlabel('Вероятность положительного класса $p = P(y=1)$', labelpad=10, fontsize=11)
+plt.ylabel('Значение меры неопределенности', labelpad=10, fontsize=11)
+plt.grid(True, linestyle=':', alpha=0.6)
+plt.legend(loc='upper right', framealpha=0.95, fontsize=10)
+plt.tight_layout(pad=2.0)
+save_plot('fig2_gini_entropy_curve.png')
+plt.show()
+
+data_path = r"C:\Users\ASUS\BSUIR\7 семестр\ММО\ЛР\ЛР4\Задание\Healthy Meal Plan Dataset\Healthy Meal Plan Dataset\healthy_meal_plans.csv"
+df = pd.read_csv(data_path)
+
+features = [
+    'num_ingredients', 'calories', 'prep_time', 'protein', 'fat',
+    'carbs', 'vegan', 'vegetarian', 'keto', 'paleo', 'gluten_free', 'mediterranean'
+]
+target = 'is_healthy'
+
+print(f"Размерность датасета: {df.shape}")
+print(f"Число признаков: {len(features)}")
+display(df.head(5))
+
+print("\nПропущенные значения:")
+print(df[features + [target]].isnull().sum())
+
+print("\nРаспределение целевой переменной is_healthy:")
+print(df[target].value_counts())
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+
+# 1. Баланс целевого класса
+counts = df[target].value_counts()
+labels_pie = [f'Обычное (0)\n{counts[0]} шт.', f'Полезное (1)\n{counts[1]} шт.']
+axes[0].pie(
+    counts,
+    labels=labels_pie,
+    autopct='%1.1f%%',
+    colors=['#5DADE2', '#48C9B0'],
+    startangle=140,
+    explode=(0, 0.08),
+    textprops={'fontsize': 11}
+)
+axes[0].set_title('Баланс целевого класса is_healthy', pad=15, fontsize=12, weight='bold')
+
+# 2. Корреляция признаков с целевой переменной
+corr = df[features + [target]].corr()[target].drop(target).sort_values()
+axes[1].barh(corr.index, corr.values, color=['#E74C3C' if v < 0 else '#2ECC71' for v in corr.values], height=0.65)
+axes[1].axvline(0, color='black', lw=0.8, ls='--')
+axes[1].set_title('Корреляция признаков с целевым классом', pad=15, fontsize=12, weight='bold')
+axes[1].set_xlabel('Коэффициент корреляции Пирсона', labelpad=8, fontsize=10)
+axes[1].grid(True, linestyle=':', alpha=0.5, axis='x')
+
+# 3. Распределение калорийности по классам
+sns.histplot(
+    data=df,
+    x='calories',
+    hue=target,
+    kde=True,
+    palette=['#E74C3C', '#2ECC71'],
+    ax=axes[2],
+    bins=20,
+    stat='density',
+    common_norm=False
+)
+axes[2].set_title('Распределение калорийности по классам', pad=15, fontsize=12, weight='bold')
+axes[2].set_xlabel('Калорийность (ккал)', labelpad=8, fontsize=10)
+axes[2].set_ylabel('Плотность вероятности', labelpad=8, fontsize=10)
+axes[2].legend(['Полезное (1)', 'Обычное (0)'], loc='upper right', fontsize=10)
+
+# Точная настройка интервалов между графиками без перекрытия текста
+plt.subplots_adjust(wspace=0.35, left=0.08, right=0.96, top=0.88, bottom=0.15)
+save_plot('fig1_eda_dataset.png')
+plt.show()
 
 # Реализуем класс внутреннего узла
 class Node:
@@ -467,7 +595,6 @@ def print_tree(node, spacing="", feature_names=None):
 
 print("Классы Node, Leaf и все функции построения дерева успешно определены!")
 
-
 class DecisionTreeClassifierCustom:
     """
     Класс-обертка в стандарте Scikit-Learn Estimator API.
@@ -501,6 +628,263 @@ class DecisionTreeClassifierCustom:
 
     def print_tree(self, feature_names=None):
         print_tree(self.tree, feature_names=feature_names)
+
+X = df[features].values
+y = df[target].values
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=RANDOM_STATE, stratify=y
+)
+
+print(f"Размер обучающей выборки: {X_train.shape[0]} объектов")
+print(f"Размер тестовой выборки:  {X_test.shape[0]} объектов")
+
+# Обучаем самописное дерево глубиной 3
+my_tree = DecisionTreeClassifierCustom(max_depth=3, threshold_strategy='midpoint')
+my_tree.fit(X_train, y_train)
+
+print("\nСтруктура обученного дерева решений (max_depth=3):")
+print("-" * 50)
+my_tree.print_tree(feature_names=features)
+print("-" * 50)
+
+train_acc = my_tree.score(X_train, y_train)
+test_acc = my_tree.score(X_test, y_test)
+print(f"\nAccuracy на обучающей выборке: {train_acc * 100:.2f}%")
+print(f"Accuracy на тестовой выборке:  {test_acc * 100:.2f}%")
+
+# Эталонная визуализация дерева решений с помощью Scikit-Learn
+sk_tree = DecisionTreeClassifier(criterion='gini', max_depth=3, random_state=RANDOM_STATE)
+sk_tree.fit(X_train, y_train)
+
+fig, ax = plt.subplots(figsize=(18, 8.5))
+plot_tree(
+    sk_tree,
+    feature_names=features,
+    class_names=['Обычное (0)', 'Полезное (1)'],
+    filled=True,
+    rounded=True,
+    fontsize=10,
+    impurity=True,
+    proportion=False,
+    ax=ax
+)
+ax.set_title('Структура эталонного дерева решений Scikit-Learn (max_depth=3, criterion=gini)', pad=15, fontsize=14, weight='bold')
+plt.subplots_adjust(left=0.02, right=0.98, top=0.92, bottom=0.03)
+save_plot('fig5_custom_vs_sklearn_tree.png')
+plt.show()
+
+depth_list = [1, 2, 3, 4, 5, 6, 8, 10, None]
+exp_depth_results = []
+
+for d in depth_list:
+    # Самописная модель
+    c_m = DecisionTreeClassifierCustom(max_depth=d, threshold_strategy='midpoint')
+    c_m.fit(X_train, y_train)
+    y_pred_c_tr = c_m.predict(X_train)
+    y_pred_c_te = c_m.predict(X_test)
+
+    # Scikit-Learn
+    sk_m = DecisionTreeClassifier(criterion='gini', max_depth=d, random_state=RANDOM_STATE)
+    sk_m.fit(X_train, y_train)
+    y_pred_sk_tr = sk_m.predict(X_train)
+    y_pred_sk_te = sk_m.predict(X_test)
+
+    acc_c_tr = accuracy_metric(y_train, y_pred_c_tr)
+    acc_c_te = accuracy_metric(y_test, y_pred_c_te)
+    acc_sk_te = accuracy_score(y_test, y_pred_sk_te)
+
+    match_tr = np.mean(y_pred_c_tr == y_pred_sk_tr) * 100.0
+    match_te = np.mean(y_pred_c_te == y_pred_sk_te) * 100.0
+
+    exp_depth_results.append({
+        'max_depth': str(d),
+        'Custom Train Acc': round(acc_c_tr, 4),
+        'Custom Test Acc': round(acc_c_te, 4),
+        'Sklearn Test Acc': round(acc_sk_te, 4),
+        'Train Match (%)': round(match_tr, 2),
+        'Test Match (%)': round(match_te, 2),
+        'Overfit Gap': round(acc_c_tr - acc_c_te, 4)
+    })
+
+df_depth_summary = pd.DataFrame(exp_depth_results)
+display(df_depth_summary.style.highlight_max(subset=['Custom Test Acc', 'Test Match (%)'], color='#D4EDDA'))
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 5.5))
+
+x_pos = np.arange(len(df_depth_summary))
+
+# График точности Train vs Test
+ax1.plot(x_pos, df_depth_summary['Custom Train Acc'], marker='o', lw=2.5, color='#2ECC71', label='Custom Train Acc')
+ax1.plot(x_pos, df_depth_summary['Custom Test Acc'], marker='s', lw=2.5, color='#E74C3C', label='Custom Test Acc')
+ax1.plot(x_pos, df_depth_summary['Sklearn Test Acc'], marker='^', lw=1.8, ls='--', color='#3498DB', label='Sklearn Test Acc')
+ax1.set_xticks(x_pos)
+ax1.set_xticklabels(df_depth_summary['max_depth'], rotation=25, ha='right', fontsize=10)
+ax1.set_xlabel('Максимальная глубина дерева (max_depth)', labelpad=10, fontsize=11)
+ax1.set_ylabel('Точность (Accuracy)', labelpad=10, fontsize=11)
+ax1.set_title('Зависимость точности от глубины дерева (CART)', pad=15, fontsize=12, weight='bold')
+ax1.grid(True, linestyle=':', alpha=0.6)
+ax1.legend(loc='lower right', framealpha=0.95, fontsize=10)
+
+# График разрыва обобщения (Train - Test)
+gap = df_depth_summary['Custom Train Acc'] - df_depth_summary['Custom Test Acc']
+ax2.bar(x_pos, gap, color='#E67E22', width=0.55, edgecolor='black', alpha=0.85)
+ax2.set_xticks(x_pos)
+ax2.set_xticklabels(df_depth_summary['max_depth'], rotation=25, ha='right', fontsize=10)
+ax2.set_xlabel('Максимальная глубина дерева (max_depth)', labelpad=10, fontsize=11)
+ax2.set_ylabel('Разрыв (Train Acc - Test Acc)', labelpad=10, fontsize=11)
+ax2.set_title('Рост переобучения при снятии ограничений глубины', pad=15, fontsize=12, weight='bold')
+ax2.grid(True, linestyle=':', alpha=0.6, axis='y')
+
+plt.subplots_adjust(wspace=0.28, left=0.07, right=0.96, top=0.88, bottom=0.20)
+save_plot('fig3_depth_accuracy_overfitting.png')
+plt.show()
+
+# Исследование min_samples_leaf при фиксированной глубине 5
+leaf_vals = [1, 2, 3, 5, 10, 15, 20]
+leaf_res = []
+for min_leaf in leaf_vals:
+    m = DecisionTreeClassifierCustom(max_depth=5, min_samples_leaf=min_leaf)
+    m.fit(X_train, y_train)
+    leaf_res.append({
+        'min_samples_leaf': min_leaf,
+        'Train Acc': round(m.score(X_train, y_train), 4),
+        'Test Acc': round(m.score(X_test, y_test), 4)
+    })
+df_leaf_res = pd.DataFrame(leaf_res)
+
+# Исследование min_samples_split при фиксированной глубине 5
+split_vals = [2, 5, 10, 20, 30, 50]
+split_res = []
+for min_s in split_vals:
+    m = DecisionTreeClassifierCustom(max_depth=5, min_samples_split=min_s)
+    m.fit(X_train, y_train)
+    split_res.append({
+        'min_samples_split': min_s,
+        'Train Acc': round(m.score(X_train, y_train), 4),
+        'Test Acc': round(m.score(X_test, y_test), 4)
+    })
+df_split_res = pd.DataFrame(split_res)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 5.5))
+
+# График min_samples_leaf
+ax1.plot(df_leaf_res['min_samples_leaf'], df_leaf_res['Train Acc'], marker='o', lw=2.2, color='#8E44AD', label='Train Accuracy')
+ax1.plot(df_leaf_res['min_samples_leaf'], df_leaf_res['Test Acc'], marker='s', lw=2.2, color='#F39C12', label='Test Accuracy')
+ax1.set_xlabel('Минимальное число объектов в листе (min_samples_leaf)', labelpad=10, fontsize=11)
+ax1.set_ylabel('Точность (Accuracy)', labelpad=10, fontsize=11)
+ax1.set_title('Регуляризация через min_samples_leaf (глубина 5)', pad=15, fontsize=12, weight='bold')
+ax1.grid(True, linestyle=':', alpha=0.6)
+ax1.legend(loc='lower left', framealpha=0.95, fontsize=10)
+
+# График min_samples_split
+ax2.plot(df_split_res['min_samples_split'], df_split_res['Train Acc'], marker='o', lw=2.2, color='#2980B9', label='Train Accuracy')
+ax2.plot(df_split_res['min_samples_split'], df_split_res['Test Acc'], marker='s', lw=2.2, color='#C0392B', label='Test Accuracy')
+ax2.set_xlabel('Минимум объектов для деления узла (min_samples_split)', labelpad=10, fontsize=11)
+ax2.set_ylabel('Точность (Accuracy)', labelpad=10, fontsize=11)
+ax2.set_title('Регуляризация через min_samples_split (глубина 5)', pad=15, fontsize=12, weight='bold')
+ax2.grid(True, linestyle=':', alpha=0.6)
+ax2.legend(loc='lower left', framealpha=0.95, fontsize=10)
+
+plt.subplots_adjust(wspace=0.28, left=0.07, right=0.96, top=0.88, bottom=0.18)
+save_plot('fig4_stopping_criteria_samples.png')
+plt.show()
+
+# 1. Синтетический набор данных
+X_syn, y_syn = make_classification(
+    n_samples=300, n_features=5, n_informative=3, n_redundant=1, random_state=RANDOM_STATE
+)
+X_syn_tr, X_syn_te, y_syn_tr, y_syn_te = train_test_split(
+    X_syn, y_syn, test_size=0.25, random_state=RANDOM_STATE, stratify=y_syn
+)
+
+bench_results = []
+for d in [1, 2, 3, 4, None]:
+    c_m = DecisionTreeClassifierCustom(max_depth=d, threshold_strategy='midpoint')
+    c_m.fit(X_syn_tr, y_syn_tr)
+    y_c = c_m.predict(X_syn_te)
+
+    sk_m = DecisionTreeClassifier(criterion='gini', max_depth=d, random_state=RANDOM_STATE)
+    sk_m.fit(X_syn_tr, y_syn_tr)
+    y_sk = sk_m.predict(X_syn_te)
+
+    match = np.mean(y_c == y_sk) * 100.0
+    bench_results.append({
+        'Датасет': 'make_classification',
+        'max_depth': str(d),
+        'Custom Acc': accuracy_metric(y_syn_te, y_c),
+        'Sklearn Acc': accuracy_score(y_syn_te, y_sk),
+        'Совпадение (%)': match,
+        'Статус': '100% Идентичность' if match == 100.0 else f'{match:.2f}% совпадение'
+    })
+
+for d in [1, 2, 3]:
+    c_m = DecisionTreeClassifierCustom(max_depth=d, threshold_strategy='midpoint')
+    c_m.fit(X_train, y_train)
+    y_c = c_m.predict(X_test)
+
+    sk_m = DecisionTreeClassifier(criterion='gini', max_depth=d, random_state=RANDOM_STATE)
+    sk_m.fit(X_train, y_train)
+    y_sk = sk_m.predict(X_test)
+
+    match = np.mean(y_c == y_sk) * 100.0
+    bench_results.append({
+        'Датасет': 'Healthy Meal Plans',
+        'max_depth': str(d),
+        'Custom Acc': accuracy_metric(y_test, y_c),
+        'Sklearn Acc': accuracy_score(y_test, y_sk),
+        'Совпадение (%)': match,
+        'Статус': '100% Идентичность' if match == 100.0 else f'{match:.2f}% совпадение'
+    })
+
+df_bench = pd.DataFrame(bench_results)
+display(df_bench)
+
+# Сопоставление матриц ошибок (Confusion Matrix)
+y_pred_custom_3 = my_tree.predict(X_test)
+y_pred_sk_3 = sk_tree.predict(X_test)
+
+cm_custom = confusion_matrix(y_test, y_pred_custom_3)
+cm_sk = confusion_matrix(y_test, y_pred_sk_3)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5))
+
+sns.heatmap(cm_custom, annot=True, fmt='d', cmap='Blues', ax=ax1, cbar=False, annot_kws={'size': 14, 'weight': 'bold'})
+ax1.set_title('Матрица ошибок: Самописное дерево', pad=15, fontsize=12, weight='bold')
+ax1.set_xlabel('Предсказанный класс (0 / 1)', labelpad=10, fontsize=11)
+ax1.set_ylabel('Истинный класс (0 / 1)', labelpad=10, fontsize=11)
+
+sns.heatmap(cm_sk, annot=True, fmt='d', cmap='Greens', ax=ax2, cbar=False, annot_kws={'size': 14, 'weight': 'bold'})
+ax2.set_title('Матрица ошибок: Scikit-Learn', pad=15, fontsize=12, weight='bold')
+ax2.set_xlabel('Предсказанный класс (0 / 1)', labelpad=10, fontsize=11)
+ax2.set_ylabel('Истинный класс (0 / 1)', labelpad=10, fontsize=11)
+
+plt.subplots_adjust(wspace=0.30, left=0.10, right=0.95, top=0.88, bottom=0.18)
+save_plot('fig6_confusion_matrices.png')
+plt.show()
+
+# Визуализация разделяющей границы дерева решений на 2 признаках (fat vs calories)
+X_2d = X_train[:, [4, 1]]  # fat (индекс 4) и calories (индекс 1)
+tree_2d = DecisionTreeClassifier(criterion='gini', max_depth=3, random_state=RANDOM_STATE)
+tree_2d.fit(X_2d, y_train)
+
+x_min, x_max = X_2d[:, 0].min() - 1.0, X_2d[:, 0].max() + 1.0
+y_min, y_max = X_2d[:, 1].min() - 20.0, X_2d[:, 1].max() + 20.0
+xx, yy = np.meshgrid(np.linspace(x_min, x_max, 400), np.linspace(y_min, y_max, 400))
+
+Z = tree_2d.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
+
+plt.figure(figsize=(11, 6))
+plt.contourf(xx, yy, Z, alpha=0.30, cmap='coolwarm')
+scatter = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=y_train, cmap='coolwarm', edgecolor='k', s=45, alpha=0.85)
+plt.title('Кусочно-постоянные разделяющие границы дерева решений в 2D (fat vs calories)', pad=15, fontsize=12, weight='bold')
+plt.xlabel('Содержание жиров (fat, г)', labelpad=10, fontsize=11)
+plt.ylabel('Калорийность (calories, ккал)', labelpad=10, fontsize=11)
+plt.grid(True, linestyle=':', alpha=0.5)
+plt.colorbar(scatter, label='Класс is_healthy (0: обычное, 1: полезное)', pad=0.03)
+plt.tight_layout(pad=2.0)
+save_plot('fig7_decision_boundary.png')
+plt.show()
 \end{CodeListing}
 
 % ==============================================================================
