@@ -466,12 +466,12 @@ class CustomLinearRegression:
 
 # Верификация работоспособности аналитического МНК решения
 ols_test = CustomLinearRegression(method="normal_eq").fit(X_train_b, y_train)
-print("✅ Класс CustomLinearRegression успешно реализован!")
+print("Класс CustomLinearRegression успешно реализован!")
 print(
-    f"📊 Аналитическое МНК-решение: Test MSE = {ols_test.mse(X_test_b, y_test):.4f}, "
-    f"R² = {ols_test.score(X_test_b, y_test):.4f}"
+    f"Аналитическое МНК-решение: Test MSE = {ols_test.mse(X_test_b, y_test):.4f}, "
+    f"R^2 = {ols_test.score(X_test_b, y_test):.4f}"
 )
-print(f"📌 Свободный член w0 (intercept) = {ols_test.intercept_:.4f}")
+print(f"Свободный член w0 (intercept) = {ols_test.intercept_:.4f}")
 \end{CodeListing}
 
 % ==============================================================================

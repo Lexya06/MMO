@@ -379,7 +379,7 @@ def build_tree(data, labels, max_depth=None, min_samples_leaf=1, min_samples_spl
         threshold_strategy=threshold_strategy
     )
 
-    # Критерий останова 4: Базовый случай — прекращаем рекурсию, когда нет прироста качества
+    # Критерий останова 4: Базовый случай - прекращаем рекурсию, когда нет прироста качества
     if best_gain <= min_gain or t is None or index is None:
         return Leaf(data, labels, depth=current_depth)
 
