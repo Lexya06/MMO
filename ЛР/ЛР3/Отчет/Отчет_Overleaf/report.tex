@@ -1175,7 +1175,7 @@ plt.show()
 \begin{table}[H]
 \centering
 \caption{Влияние темпа обучения $\eta$ на сходимость градиентного спуска}
-\begin{tabularx}{\textwidth}{cccccc}
+\begin{tabular}{cccccc}
 \toprule
 \textbf{Темп $\eta$} & \textbf{Итераций} & \textbf{Сходимость} & \textbf{Test MSE} & \textbf{Test $R^2$} & \textbf{Время (мс)} \\
 \midrule
@@ -1186,7 +1186,7 @@ plt.show()
 0.1000 & 75 & Да & 1.9954 & 0.8230 & 21.81 \\
 0.2500 & \textbf{27} & \textbf{Да} & \textbf{1.9954} & \textbf{0.8230} & \textbf{8.14} \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \end{table}
 
 На рисунке 3 продемонстрирована сходимость алгоритмов BGD и SGD на едином графическом поле.
@@ -1202,14 +1202,15 @@ plt.show()
 \begin{table}[H]
 \centering
 \caption{Сравнительные характеристики пакетного (BGD) и стохастического (SGD) спуска}
-\begin{tabularx}{\textwidth}{lccccc}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
 \toprule
 \textbf{Алгоритм} & \textbf{Размер пакета} & \textbf{Шагов} & \textbf{Test MSE} & \textbf{Test $R^2$} & \textbf{Сложность 1 шага} \\
 \midrule
 BGD & $l = 5285$ (вся выборка) & 151 & 1.9954 & 0.8230 & $\mathcal{O}(l \cdot m)$ \\
 SGD & 1 случайный объект & 10000 & 2.1306 & 0.8110 & $\mathcal{O}(m)$ \\
 \bottomrule
-\end{tabularx}
+\end{tabular}}
 \end{table}
 
 На рисунках 4 и 5 представлены регуляризационные пути параметров $w_j$ для 20 значений гиперпараметра $\lambda \in [10^{-3}, 10^3]$ для $L_1$-регуляризации (Lasso) и $L_2$-регуляризации (Ridge).
@@ -1239,7 +1240,8 @@ SGD & 1 случайный объект & 10000 & 2.1306 & 0.8110 & $\mathcal{O}
 \begin{table}[H]
 \centering
 \caption{Результаты эталонного тестирования против библиотеки Scikit-Learn}
-\begin{tabularx}{\textwidth}{lccccc}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
 \toprule
 \textbf{Модель} & \textbf{Intercept $w_0$} & \textbf{$\|w\|_2$} & \textbf{Test MSE} & \textbf{Test MAE} & \textbf{Test $R^2$} \\
 \midrule
@@ -1255,7 +1257,7 @@ Sklearn Lasso ($\alpha=0.25$) & 67.0982 & 2.5707 & 2.3515 & 1.1603 & 0.7914 \\
 Custom L2 ($\lambda=1.0$) & 67.0982 & 1.5129 & 4.3653 & 1.6541 & 0.6128 \\
 Sklearn Ridge ($\alpha=5285.0$) & 67.0982 & 1.5129 & 4.3653 & 1.6541 & 0.6128 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}}
 \end{table}
 
 На рисунке 7 представлен диагностический дашборд валидации модели: рассеяние предсказаний, распределение остатков и сопоставление весовых параметров.
